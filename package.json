@@ -1,0 +1,23 @@
+{
+  "name": "@fynks/tabmd",
+  "version": "2.0.1",
+  "description": "A markdown/html editor.",
+  "main": "index.js",
+  "homepage": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "scripts": {
+    "minify:css": "cleancss -o dist/css/styles-min.css dist/css/styles.css",
+    "minify:js": "terser dist/js/app.js -o dist/js/app-min.js --compress --mangle",
+    "build": "npm run minify:css && npm run minify:js && npm run optimize-json && workbox generateSW workbox-config.js",
+    "postbuild": "node scripts/replace-assets.js"
+  },
+  "author": "fynks",
+  "dependencies": {
+    "clean-css-cli": "^5.6.3",
+    "terser": "^5.44.0",
+    "workbox-cli": "^7.3.0"
+  }
+}
