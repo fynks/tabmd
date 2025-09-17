@@ -4,9 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="../favicon.ico" sizes="any">
-    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+
+    <link rel="icon" type="image/png" href="images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="TabMD" />
+    <link rel="manifest" href="/site.webmanifest" />
     <title>Markdown Table Editor & Analyzer</title>
+
     <link rel="stylesheet" href="css/styles-min.css">
     <script src="js/app-min.js" defer></script>
     <meta name="description"
@@ -30,8 +36,8 @@
 
         <article class="section input-area" aria-labelledby="input-section">
             <h3 id="input-section">Paste Markdown or HTML Table</h3>
-            <textarea id="input" aria-label="Markdown or HTML table input" placeholder="Paste your markdown or HTML table here..."
-                spellcheck="false"></textarea>
+            <textarea id="input" aria-label="Markdown or HTML table input"
+                placeholder="Paste your markdown or HTML table here..." spellcheck="false"></textarea>
             <nav class="controls" role="toolbar" aria-label="Table controls">
                 <button id="parseBtn" aria-label="Parse table">
                     <span aria-hidden="true">Parse Table</span>
@@ -86,7 +92,7 @@
 
         <article class="section" aria-labelledby="output-section">
             <h3 id="output-section">Output</h3>
-                  
+
             <select id="outputFormat" aria-label="Select output format">
                 <option value="markdown" selected>Markdown</option>
                 <option value="json">JSON</option>
@@ -96,7 +102,7 @@
             <button id="copyBtn" class="copy-btn" aria-label="Copy output to clipboard">
                 <span aria-hidden="true">Copy</span>
             </button>
-  
+
             <output>
                 <textarea id="output" readonly aria-label="Generated markdown table output"
                     placeholder="Your generated table will appear here."></textarea>
