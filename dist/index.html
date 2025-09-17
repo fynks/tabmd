@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <title>Markdown Table Editor & Analyzer</title>
+    <link rel="stylesheet" href="css/styles-min.css">
+    <script src="js/app-min.js" defer></script>
+    <meta name="description"
+        content="Effortlessly create, edit, and analyze Markdown tables with this online tool. Features live editing, sorting, reordering, and dark mode support.">
+</head>
+
+<body>
+    <main class="container">
+        <h1>
+            Markdown Table Editor & Analyzer
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path class="sun"
+                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                        style="display:none" />
+                    <path class="moon"
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </button>
+        </h1>
+
+        <article class="section input-area" aria-labelledby="input-section">
+            <h3 id="input-section">Paste Markdown or HTML Table</h3>
+            <textarea id="input" aria-label="Markdown or HTML table input" placeholder="Paste your markdown or HTML table here..."
+                spellcheck="false"></textarea>
+            <nav class="controls" role="toolbar" aria-label="Table controls">
+                <button id="parseBtn" aria-label="Parse table">
+                    <span aria-hidden="true">Parse Table</span>
+                </button>
+                <button id="analyzeBtn" aria-label="Analyze table data">
+                    <span aria-hidden="true">Analyze</span>
+                </button>
+
+                <button id="clearBtn" class="btn-secondary" aria-label="Clear all data">
+                    <span aria-hidden="true">Clear</span>
+                </button>
+            </nav>
+        </article>
+
+        <article class="section" aria-labelledby="edit-section">
+            <h3 id="edit-section">Edit Table</h3>
+            <nav class="table-actions" role="toolbar" aria-label="Table editing controls">
+                <button id="sortRowsBtn" aria-label="Sort rows alphabetically">
+                    <span aria-hidden="true">Sort Rows</span>
+                </button>
+                <button id="reorderBtn" aria-label="Toggle reorder mode">
+                    <span aria-hidden="true">Re-order</span>
+                </button>
+                <button id="addColumnBtn" aria-label="Add new column">
+                    <span aria-hidden="true">+ Column</span>
+                </button>
+                <button id="addRowBtn" aria-label="Add new row">
+                    <span aria-hidden="true">+ Row</span>
+                </button>
+                <button id="removeColumnBtn" class="btn-secondary" aria-label="Remove last column">
+                    <span aria-hidden="true">− Column</span>
+                </button>
+                <button id="removeRowBtn" class="btn-secondary" aria-label="Remove last row">
+                    <span aria-hidden="true">− Row</span>
+                </button>
+            </nav>
+
+            <details id="analysisSection">
+                <summary role="button" aria-expanded="false" tabindex="0">
+                    Table Analysis
+                </summary>
+                <div class="analysis-section">
+                    <output id="analysisMarkdownOutput" class="analysis-markdown-output" role="region"
+                        aria-label="Analysis results"></output>
+                </div>
+            </details>
+
+            <section id="tableContainer" class="table-container" role="region" aria-label="Editable table">
+                <!-- Table will be rendered here -->
+            </section>
+        </article>
+
+        <article class="section" aria-labelledby="output-section">
+            <h3 id="output-section">Output</h3>
+                  
+            <select id="outputFormat" aria-label="Select output format">
+                <option value="markdown" selected>Markdown</option>
+                <option value="json">JSON</option>
+                <option value="html">HTML</option>
+            </select>
+
+            <button id="copyBtn" class="copy-btn" aria-label="Copy output to clipboard">
+                <span aria-hidden="true">Copy</span>
+            </button>
+  
+            <output>
+                <textarea id="output" readonly aria-label="Generated markdown table output"
+                    placeholder="Your generated table will appear here."></textarea>
+            </output>
+        </article>
+    </main>
+
+    <aside id="notification" class="notification" role="alert" aria-live="polite"></aside>
+</body>
+
+</html>
