@@ -151,6 +151,19 @@
            ['✅', '✔️', '✔', '✓'].includes(val);
   };
 
+  const isUnchecked = (value) => {
+    const val = String(value ?? '').trim();
+    const lower = val.toLowerCase();
+    return ['no', 'false', '0', 'n'].includes(lower) || 
+           ['❌', '✖️', '✖', '✗', '×'].includes(val);
+  };
+
+  const normalizeCheckValue = (value) => {
+    if (isChecked(value)) return '✅';
+    if (isUnchecked(value)) return '❌';
+    return value; // Return original value if it's neither checked nor unchecked
+  };
+
   // Theme Manager
   const ThemeManager = {
     toggle() {
@@ -236,7 +249,7 @@
       return {
         headers: headers.map(escapeHtml),
         alignments,
-        rows: rows.map(row => row.map(escapeHtml))
+        rows: rows.map(row => row.map(cell => escapeHtml(normalizeCheckValue(cell))))
       };
     },
 
@@ -291,7 +304,7 @@
         return {
           headers: headers.map(escapeHtml),
           alignments,
-          rows: rows.map(row => row.map(escapeHtml))
+          rows: rows.map(row => row.map(cell => escapeHtml(normalizeCheckValue(cell))))
         };
       } catch (e) {
         throw new Error(`Error parsing HTML table: ${e.message}`);
@@ -313,7 +326,10 @@
     [FORMAT.MARKDOWN]: () => {
       const header = `| ${state.headers.join(' | ')} |`;
       const separator = `| ${state.alignments.map(align => ALIGN_MARKDOWN[align]).join(' | ')} |`;
-      const rows = state.rows.map(row => `| ${row.join(' | ')} |`).join('\n');
+      const rows = state.rows.map(row => {
+        const normalizedRow = row.map(cell => normalizeCheckValue(cell));
+        return `| ${normalizedRow.join(' | ')} |`;
+      }).join('\n');
       
       return [header, separator, rows].filter(Boolean).join('\n');
     },
@@ -328,7 +344,7 @@
         result[key] = {};
         for (let i = 1; i < state.headers.length; i++) {
           const header = state.headers[i].replace(/\*\*/g, '');
-          result[key][header] = isChecked(row[i]) ? 'yes' : 'no';
+          result[key][header] = isChecked(row[i]) ? '✅' : (isUnchecked(row[i]) ? '❌' : row[i]);
         }
       });
       
@@ -345,7 +361,7 @@
       const bodyRows = state.rows
         .map(row => {
           const cells = row
-            .map((cell, i) => `<td${alignClass(state.alignments[i])}>${cell}</td>`)
+            .map((cell, i) => `<td${alignClass(state.alignments[i])}>${normalizeCheckValue(cell)}</td>`)
             .join('');
           return `<tr>${cells}</tr>`;
         })
@@ -464,15 +480,17 @@ ${bodyRows}
       const td = document.createElement('td');
       td.contentEditable = !state.isReorderMode;
       td.tabIndex = state.isReorderMode ? -1 : 0;
-      td.textContent = content;
+      td.textContent = normalizeCheckValue(content);
       td.dataset.row = rowIndex;
       td.dataset.col = colIndex;
 
       td.addEventListener('blur', () => {
         if (!state.isReorderMode) {
           state.saveToHistory();
-          state.rows[rowIndex][colIndex] = escapeHtml(td.textContent);
+          state.rows[rowIndex][colIndex] = escapeHtml(normalizeCheckValue(td.textContent));
           OutputGenerator.generate();
+          // Update the displayed value after normalization
+          td.textContent = normalizeCheckValue(td.textContent);
         }
       });
 
