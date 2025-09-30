@@ -694,14 +694,28 @@ ${bodyRows}
       }
       
       state.saveToHistory();
+      
+      // Create a more robust sorting function
       state.rows.sort((a, b) => {
-        const aVal = (a[0] || '').toLowerCase();
-        const bVal = (b[0] || '').toLowerCase();
-        return aVal.localeCompare(bVal);
+        // Get the first column values, handling null/undefined/empty cases
+        const aVal = String(a[0] || '').trim().toLowerCase();
+        const bVal = String(b[0] || '').trim().toLowerCase();
+        
+        // Handle empty values (put them at the end)
+        if (aVal === '' && bVal !== '') return 1;
+        if (bVal === '' && aVal !== '') return -1;
+        if (aVal === '' && bVal === '') return 0;
+        
+        // Use locale-aware comparison
+        return aVal.localeCompare(bVal, undefined, { 
+          numeric: true, 
+          sensitivity: 'base' 
+        });
       });
       
       TableRenderer.render();
       OutputGenerator.generate();
+      Analyzer.analyze();
       showNotification('Rows sorted alphabetically');
     },
 
