@@ -624,7 +624,10 @@ ${bodyRows}
   // Table Operations - Fixed version
   const TableOperations = {
     addColumn() {
-      if (state.isReorderMode) return;
+      if (state.isReorderMode) {
+        showNotification('Exit reorder mode first', NOTIFY_TYPE.WARNING);
+        return;
+      }
       
       state.saveToHistory();
       state.headers.push('New Column');
@@ -633,11 +636,14 @@ ${bodyRows}
       
       TableRenderer.render();
       OutputGenerator.generate();
-      showNotification('Column added');
+      showNotification('Column added successfully');
     },
 
     addRow() {
-      if (state.isReorderMode) return;
+      if (state.isReorderMode) {
+        showNotification('Exit reorder mode first', NOTIFY_TYPE.WARNING);
+        return;
+      }
       
       if (state.headers.length === 0) {
         showNotification('Please add headers first', NOTIFY_TYPE.ERROR);
@@ -650,11 +656,14 @@ ${bodyRows}
       
       TableRenderer.render();
       OutputGenerator.generate();
-      showNotification('Row added');
+      showNotification('Row added successfully');
     },
 
     removeColumn() {
-      if (state.isReorderMode) return;
+      if (state.isReorderMode) {
+        showNotification('Exit reorder mode first', NOTIFY_TYPE.WARNING);
+        return;
+      }
       
       if (state.headers.length <= 1) {
         showNotification('Cannot remove the last column', NOTIFY_TYPE.ERROR);
@@ -674,7 +683,10 @@ ${bodyRows}
     },
 
     removeColumnAt(index) {
-      if (state.isReorderMode) return;
+      if (state.isReorderMode) {
+        showNotification('Exit reorder mode first', NOTIFY_TYPE.WARNING);
+        return;
+      }
       
       if (state.headers.length <= 1) {
         showNotification('Cannot remove the last column', NOTIFY_TYPE.ERROR);
@@ -697,7 +709,10 @@ ${bodyRows}
     },
 
     removeRow() {
-      if (state.isReorderMode) return;
+      if (state.isReorderMode) {
+        showNotification('Exit reorder mode first', NOTIFY_TYPE.WARNING);
+        return;
+      }
       
       if (state.rows.length === 0) {
         showNotification('No rows to remove', NOTIFY_TYPE.ERROR);
@@ -713,7 +728,10 @@ ${bodyRows}
     },
 
     removeRowAt(index) {
-      if (state.isReorderMode) return;
+      if (state.isReorderMode) {
+        showNotification('Exit reorder mode first', NOTIFY_TYPE.WARNING);
+        return;
+      }
       
       if (index < 0 || index >= state.rows.length) {
         showNotification('Invalid row index', NOTIFY_TYPE.ERROR);
@@ -734,10 +752,13 @@ ${bodyRows}
     },
 
     sortRows() {
-      if (state.isReorderMode) return;
+      if (state.isReorderMode) {
+        showNotification('Exit reorder mode first', NOTIFY_TYPE.WARNING);
+        return;
+      }
       
       if (state.rows.length <= 1) {
-        showNotification('Need at least 2 rows to sort', NOTIFY_TYPE.ERROR);
+        showNotification('Need at least 2 rows to sort', NOTIFY_TYPE.WARNING);
         return;
       }
       
@@ -894,28 +915,65 @@ ${bodyRows}
     parseTable() {
       const input = elements.inputTextArea?.value?.trim();
       if (!input) {
-        showNotification('Please enter a table to parse', NOTIFY_TYPE.ERROR);
+        showNotification('Please enter a table to parse', NOTIFY_TYPE.WARNING);
         return;
       }
 
-      try {
-        const parsed = Parser.parse(input);
-        state.saveToHistory();
-        Object.assign(state, parsed);
-        TableRenderer.render();
-        OutputGenerator.generate();
-        showNotification('Table parsed successfully!');
-      } catch (error) {
-        showNotification(`Error parsing table: ${error.message}`, NOTIFY_TYPE.ERROR);
+      const container = elements.tableContainer;
+      const parseBtn = elements.parseBtn;
+      
+      // Add loading state
+      if (container) container.classList.add('loading');
+      if (parseBtn) {
+        parseBtn.classList.add('loading');
+        parseBtn.disabled = true;
       }
+
+      // Use setTimeout to allow UI to update
+      setTimeout(() => {
+        try {
+          const parsed = Parser.parse(input);
+          state.saveToHistory();
+          Object.assign(state, parsed);
+          TableRenderer.render();
+          OutputGenerator.generate();
+          showNotification('✅ Table parsed successfully!');
+        } catch (error) {
+          showNotification(`❌ Error: ${error.message}`, NOTIFY_TYPE.ERROR);
+        } finally {
+          // Remove loading state
+          if (container) container.classList.remove('loading');
+          if (parseBtn) {
+            parseBtn.classList.remove('loading');
+            parseBtn.disabled = false;
+          }
+        }
+      }, 50);
     },
 
     async copyToClipboard() {
       const text = elements.outputTextArea?.value;
-      if (!text) return;
+      if (!text) {
+        showNotification('Nothing to copy', NOTIFY_TYPE.WARNING);
+        return;
+      }
 
+      const btn = elements.copyBtn;
+      
       try {
         await navigator.clipboard.writeText(text);
+        
+        // Visual feedback on button
+        if (btn) {
+          btn.classList.add('success');
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => {
+            btn.classList.remove('success');
+            btn.textContent = originalText;
+          }, 2000);
+        }
+        
         showNotification('Copied to clipboard!');
       } catch {
         const textarea = document.createElement('textarea');
@@ -927,6 +985,16 @@ ${bodyRows}
         
         const success = document.execCommand('copy');
         document.body.removeChild(textarea);
+        
+        if (success && btn) {
+          btn.classList.add('success');
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => {
+            btn.classList.remove('success');
+            btn.textContent = originalText;
+          }, 2000);
+        }
         
         showNotification(
           success ? 'Copied to clipboard!' : 'Failed to copy to clipboard',
@@ -962,14 +1030,20 @@ ${bodyRows}
       state.isReorderMode = !state.isReorderMode;
       
       const btn = elements.reorderBtn;
+      const container = elements.tableContainer;
+      
       if (btn) {
-        btn.textContent = state.isReorderMode ? 'Edit Table' : 'Re-order';
-        btn.classList.toggle('btn-secondary', state.isReorderMode);
+        btn.textContent = state.isReorderMode ? 'Finish Reorder' : 'Re-order';
+        btn.classList.toggle('active', state.isReorderMode);
+      }
+      
+      if (container) {
+        container.classList.toggle('reorder-mode', state.isReorderMode);
       }
       
       TableRenderer.render();
       showNotification(
-        state.isReorderMode ? 'Reorder mode enabled' : 'Edit mode enabled',
+        state.isReorderMode ? 'Drag rows or columns to reorder' : 'Edit mode enabled',
         NOTIFY_TYPE.INFO
       );
     },
