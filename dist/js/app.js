@@ -147,14 +147,14 @@
   const isChecked = (value) => {
     const val = String(value ?? '').trim();
     const lower = val.toLowerCase();
-    return ['yes', 'true', '1', 'y'].includes(lower) || 
+    return ['yes', 'true', 'y'].includes(lower) || 
            ['✅', '✔️', '✔', '✓'].includes(val);
   };
 
   const isUnchecked = (value) => {
     const val = String(value ?? '').trim();
     const lower = val.toLowerCase();
-    return ['no', 'false', '0', 'n'].includes(lower) || 
+    return ['no', 'false', 'n'].includes(lower) || 
            ['❌', '✖️', '✖', '✗', '×'].includes(val);
   };
 
@@ -427,6 +427,11 @@ ${bodyRows}
         th.addEventListener('dragstart', DragHandlers.handleDragStart);
         th.addEventListener('dragover', DragHandlers.handleDragOver);
         th.addEventListener('drop', DragHandlers.handleDrop);
+        th.addEventListener('dragend', (e) => {
+          e.target.classList.remove('dragging');
+          DragHandlers.draggedElement = null;
+          DragHandlers.draggedType = null;
+        });
       }
 
       th.addEventListener('blur', () => {
@@ -467,6 +472,11 @@ ${bodyRows}
         tr.addEventListener('dragstart', DragHandlers.handleDragStart);
         tr.addEventListener('dragover', DragHandlers.handleDragOver);
         tr.addEventListener('drop', DragHandlers.handleDrop);
+        tr.addEventListener('dragend', (e) => {
+          e.target.classList.remove('dragging');
+          DragHandlers.draggedElement = null;
+          DragHandlers.draggedType = null;
+        });
       }
 
       rowData.forEach((cellData, colIndex) => {
@@ -507,25 +517,47 @@ ${bodyRows}
 
   // Drag and Drop handlers
   const DragHandlers = {
+    draggedElement: null,
+    draggedType: null,
+    
     handleDragStart(e) {
+      DragHandlers.draggedElement = e.target;
+      DragHandlers.draggedType = e.target.tagName.toLowerCase();
       e.target.classList.add('dragging');
-      e.dataTransfer.setData('text/plain', e.target.dataset.index);
-      e.dataTransfer.setData('type', e.target.tagName.toLowerCase());
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/html', e.target.innerHTML);
     },
 
     handleDragOver(e) {
       e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
       
-      if (e.dataTransfer.getData('type') === 'tr') {
+      const dragging = DragHandlers.draggedElement;
+      if (!dragging) return;
+      
+      if (DragHandlers.draggedType === 'tr') {
+        // Row dragging
         const tbody = elements.tableContainer?.querySelector('tbody');
-        const afterElement = this.getDragAfterElement(tbody, e.clientY);
-        const dragging = document.querySelector('.dragging');
+        if (!tbody) return;
         
-        if (dragging) {
-          if (afterElement) {
-            tbody.insertBefore(dragging, afterElement);
+        const afterElement = DragHandlers.getDragAfterElement(tbody, e.clientY);
+        
+        if (afterElement) {
+          tbody.insertBefore(dragging, afterElement);
+        } else {
+          tbody.appendChild(dragging);
+        }
+      } else if (DragHandlers.draggedType === 'th') {
+        // Column dragging - visual feedback
+        const target = e.target.closest('th');
+        if (target && target !== dragging) {
+          const rect = target.getBoundingClientRect();
+          const midpoint = rect.left + rect.width / 2;
+          
+          if (e.clientX < midpoint) {
+            target.parentNode.insertBefore(dragging, target);
           } else {
-            tbody.appendChild(dragging);
+            target.parentNode.insertBefore(dragging, target.nextSibling);
           }
         }
       }
@@ -533,29 +565,45 @@ ${bodyRows}
 
     handleDrop(e) {
       e.preventDefault();
+      e.stopPropagation();
       
-      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-      const toIndex = parseInt(e.target.dataset.index, 10);
-      const type = e.dataTransfer.getData('type');
-
-      if (fromIndex !== toIndex) {
-        state.saveToHistory();
+      const dragging = DragHandlers.draggedElement;
+      if (!dragging) return;
+      
+      const fromIndex = parseInt(dragging.dataset.index, 10);
+      const type = DragHandlers.draggedType;
+      
+      let toIndex;
+      
+      if (type === 'th') {
+        // For columns, calculate new position from DOM
+        const allHeaders = Array.from(dragging.parentNode.children);
+        toIndex = allHeaders.indexOf(dragging);
         
-        if (type === 'th') {
+        if (fromIndex !== toIndex) {
+          state.saveToHistory();
           TableOperations.reorderColumns(fromIndex, toIndex);
-        } else if (type === 'tr') {
-          const tbody = elements.tableContainer?.querySelector('tbody');
-          const draggingRow = tbody?.querySelector('tr.dragging');
-          if (draggingRow) {
-            const newIndex = Array.from(tbody.children).indexOf(draggingRow);
-            TableOperations.reorderRows(fromIndex, newIndex);
+          TableRenderer.render();
+        }
+      } else if (type === 'tr') {
+        // For rows, calculate new position from DOM
+        const tbody = elements.tableContainer?.querySelector('tbody');
+        if (tbody) {
+          const allRows = Array.from(tbody.children);
+          toIndex = allRows.indexOf(dragging);
+          
+          if (fromIndex !== toIndex) {
+            state.saveToHistory();
+            TableOperations.reorderRows(fromIndex, toIndex);
+            TableRenderer.render();
           }
         }
-        
-        TableRenderer.render();
       }
-
-      document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+      
+      // Clean up
+      dragging.classList.remove('dragging');
+      DragHandlers.draggedElement = null;
+      DragHandlers.draggedType = null;
     },
 
     getDragAfterElement(container, y) {
