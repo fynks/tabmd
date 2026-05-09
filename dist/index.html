@@ -31,14 +31,17 @@
         <h1>
             Markdown Table Editor & Analyzer
             <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path class="sun"
-                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                        style="display:none" />
-                    <path class="moon"
-                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-            </button>
+    <span class="theme-toggle__icons" aria-hidden="true">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path class="sun"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path class="moon"
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+    </span>
+</button>
         </h1>
 
         <article class="section input-area" aria-labelledby="input-section">
@@ -100,15 +103,16 @@
         <article class="section" aria-labelledby="output-section">
             <h3 id="output-section">Output</h3>
 
-            <select id="outputFormat" aria-label="Select output format">
-                <option value="markdown" selected>Markdown</option>
-                <option value="json">JSON</option>
-                <option value="html">HTML</option>
-            </select>
-
-            <button id="copyBtn" class="copy-btn" aria-label="Copy output to clipboard">
-                <span aria-hidden="true">Copy</span>
-            </button>
+<div class="output-toolbar">
+    <select id="outputFormat" aria-label="Select output format">
+        <option value="markdown" selected>Markdown</option>
+        <option value="json">JSON</option>
+        <option value="html">HTML</option>
+    </select>
+    <button id="copyBtn" class="copy-btn" aria-label="Copy output to clipboard">
+        <span aria-hidden="true">Copy</span>
+    </button>
+</div>
 
             <output>
                 <textarea id="output" readonly aria-label="Generated markdown table output"
