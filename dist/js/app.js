@@ -846,7 +846,7 @@ ${bodyRows}
         const checked = state.rows.reduce((sum, row) => {
           return sum + (isChecked(row[i]) ? 1 : 0);
         }, 0);
-        result += ` ${checked}/${total} |`;
+        result += ` **${checked}/${total}** |`;
       }
       
       if (elements.analysisMarkdownOutput) {
