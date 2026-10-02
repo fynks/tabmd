@@ -136,3 +136,8 @@ out
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Bun / generated package-manager lockfiles (this repository intentionally does not commit locks)
+bun.lock
+bun.lockb
+package-lock.json

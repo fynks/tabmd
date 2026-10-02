@@ -1,90 +1,73 @@
-// workbox-config.js
-module.exports = {
-  globDirectory: "dist/",
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-  // No precache — runtime caching only
+const root = path.dirname(fileURLToPath(import.meta.url));
+const day = 24 * 60 * 60;
+
+export default {
+  // Vite owns dist/; Workbox adds the runtime-only service worker after that build.
+  globDirectory: path.join(root, 'dist'),
   globPatterns: [],
-
   runtimeCaching: [
-    // 1. SPA Navigations - Network first
     {
-      urlPattern: ({ request }) => request.mode === "navigate",
-      handler: "NetworkFirst",
+      urlPattern: ({ request }) => request.mode === 'navigate',
+      handler: 'NetworkFirst',
       options: {
-        cacheName: "navigation-cache",
+        cacheName: 'navigation-cache',
         networkTimeoutSeconds: 3,
         expiration: {
           maxEntries: 50,
-          maxAgeSeconds: 24 * 60 * 60, // 1 day
+          maxAgeSeconds: day,
         },
         cacheableResponse: { statuses: [0, 200] },
       },
     },
-
-    // 2. HTML files - Network first
     {
       urlPattern: /\.html$/i,
-      handler: "NetworkFirst",
+      handler: 'NetworkFirst',
       options: {
-        cacheName: "html-cache",
+        cacheName: 'html-cache',
         networkTimeoutSeconds: 2,
         expiration: {
           maxEntries: 50,
-          maxAgeSeconds: 12 * 60 * 60, // 12 hours
+          maxAgeSeconds: 12 * 60 * 60,
         },
         cacheableResponse: { statuses: [0, 200] },
       },
     },
-
-    // 3. JS & CSS - StaleWhileRevalidate
     {
       urlPattern: /\.(?:js|css)$/i,
-      handler: "StaleWhileRevalidate",
+      handler: 'StaleWhileRevalidate',
       options: {
-        cacheName: "static-resources",
+        cacheName: 'static-resources',
         expiration: {
           maxEntries: 60,
-          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+          maxAgeSeconds: 7 * day,
           purgeOnQuotaError: true,
         },
         cacheableResponse: { statuses: [0, 200] },
       },
     },
-
-    // 4. Images - CacheFirst
     {
       urlPattern: /\.(?:png|jpg|jpeg|gif|webp|svg|ico)$/i,
-      handler: "CacheFirst",
+      handler: 'CacheFirst',
       options: {
-        cacheName: "image-cache",
+        cacheName: 'image-cache',
         expiration: {
           maxEntries: 200,
-          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+          maxAgeSeconds: 30 * day,
           purgeOnQuotaError: true,
         },
         cacheableResponse: { statuses: [0, 200] },
       },
     },
   ],
-
-  // Output Service Worker
-  swDest: "dist/sw.js",
-
-  // Build options
+  swDest: path.join(root, 'dist', 'sw.js'),
   sourcemap: false,
-  mode: "production",
-
-  // SW lifecycle
   skipWaiting: true,
   clientsClaim: true,
   cleanupOutdatedCaches: true,
-
-  // No precache fallback
-  navigateFallback: null,
-
-  // Ignore UTM and fbclid params
+  // No precache or navigation fallback: keep the legacy runtime-only strategy.
   ignoreURLParametersMatching: [/^utm_/, /^fbclid$/],
-
-  // Max cache size per file (15MB)
   maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
 };
