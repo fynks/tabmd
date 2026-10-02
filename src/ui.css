@@ -596,8 +596,7 @@ kbd {
   width: 10px;
   height: 10px;
   margin-left: -7px;
-  align-self: flex-start;
-  margin-top: 4px;
+  align-self: center;
   stroke-width: 2.4;
 }
 
@@ -710,17 +709,42 @@ kbd {
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding: 9px 11px;
   overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-muted);
+}
+
+.analysis-table {
+  width: 100%;
+  border-collapse: collapse;
   color: var(--text);
-  font-family: var(--mono);
   font-size: 11px;
-  line-height: 1.65;
-  white-space: pre-wrap;
+  text-align: left;
+}
+
+.analysis-table th,
+.analysis-table td {
+  min-width: 88px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.analysis-table thead th {
+  color: var(--text-subtle);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.analysis-table tbody th {
+  max-width: 280px;
+  color: var(--text-muted);
+  font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+.analysis-table tbody tr:last-child th,
+.analysis-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .table-viewport {
@@ -1048,6 +1072,10 @@ textarea::-webkit-scrollbar-thumb {
   .analysis-body {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
+  }
+
+  .analysis-table {
+    min-width: 520px;
   }
 
   .table-viewport {
