@@ -693,7 +693,7 @@ kbd {
 
 .analysis-body {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 16px;
   padding: 12px;
@@ -707,6 +707,7 @@ kbd {
 }
 
 .analysis-output {
+  width: 100%;
   min-width: 0;
   margin: 0;
   padding: 9px 11px;
