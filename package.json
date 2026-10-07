@@ -1,8 +1,8 @@
 {
   "name": "@fynks/tabmd",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "private": true,
-  "description": "A focused Markdown and HTML table editor.",
+  "description": "A focused Markdown, HTML, and JSON table editor.",
   "type": "module",
   "scripts": {
     "dev": "vite",
