@@ -21,7 +21,7 @@ import {
   ALIGNMENT,
   OUTPUT_FORMAT,
   TableMD,
-  analyzeTable,
+  analyzeTableData,
   formatTable,
   normalizeCheckValue,
   parseTable,
@@ -64,6 +64,13 @@ const elements = {
   dimensions: document.querySelector('#tableDimensions'),
   tableStatus: document.querySelector('#tableStatus'),
   notification: document.querySelector('#notification'),
+  columnDialog: document.querySelector('#columnDialog'),
+  columnName: document.querySelector('#columnName'),
+  columnMembers: document.querySelector('#columnMembers'),
+  columnMarked: document.querySelector('#columnMarked'),
+  columnUnmarked: document.querySelector('#columnUnmarked'),
+  columnCreateRows: document.querySelector('#columnCreateRows'),
+  columnCancelButton: document.querySelector('#columnCancelBtn'),
 };
 
 const iconSet = {
@@ -136,10 +143,49 @@ function syncHistoryButtons() {
   elements.redoButton.disabled = !editor.canRedo;
 }
 
+function renderAnalysis() {
+  elements.analysisOutput.replaceChildren();
+  const { total, columns } = analyzeTableData(editor.state);
+  if (total === 0 || columns.length === 0) return;
+
+  const table = document.createElement('table');
+  table.className = 'analysis-table';
+  const caption = document.createElement('caption');
+  caption.className = 'visually-hidden';
+  caption.textContent = 'Checked rows per column';
+  table.append(caption);
+
+  const head = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  for (const label of ['Column', 'Checked', 'Percent']) {
+    const cell = document.createElement('th');
+    cell.scope = 'col';
+    cell.textContent = label;
+    headRow.append(cell);
+  }
+  head.append(headRow);
+  table.append(head);
+
+  const body = document.createElement('tbody');
+  for (const column of columns) {
+    const row = document.createElement('tr');
+    const name = document.createElement('th');
+    name.scope = 'row';
+    name.textContent = column.name;
+    const checked = document.createElement('td');
+    checked.textContent = `${column.checked}/${column.total}`;
+    const percent = document.createElement('td');
+    percent.textContent = `${column.percent}%`;
+    row.append(name, checked, percent);
+    body.append(row);
+  }
+  table.append(body);
+  elements.analysisOutput.append(table);
+}
+
 function updateDerivedOutput() {
   elements.output.value = editor.isValid ? formatTable(editor.state, ui.outputFormat) : '';
-  const analysis = analyzeTable(editor.state);
-  elements.analysisOutput.textContent = analysis;
+  renderAnalysis();
 
   const { headers, rows } = editor.state;
   if (!headers.length || !rows.length) {
@@ -456,6 +502,58 @@ function runTableAction(action, { message, failure, requiresNoReorder = true } =
   else if (failure) notify(failure, 'warning');
 }
 
+const columnFieldDefaults = {
+  name: elements.columnName.value,
+  marked: elements.columnMarked.value,
+  unmarked: elements.columnUnmarked.value,
+  createRows: elements.columnCreateRows.checked,
+};
+
+function openColumnDialog() {
+  if (editor.reorderMode) {
+    notify('Finish reorder mode before editing the table.', 'warning');
+    return;
+  }
+
+  elements.columnName.value = columnFieldDefaults.name;
+  elements.columnMembers.value = '';
+  elements.columnMarked.value = columnFieldDefaults.marked;
+  elements.columnUnmarked.value = columnFieldDefaults.unmarked;
+  elements.columnCreateRows.checked = columnFieldDefaults.createRows;
+  elements.columnDialog.returnValue = '';
+  elements.columnDialog.showModal();
+  elements.columnName.select();
+}
+
+function formatNameList(names, limit = 3) {
+  if (names.length <= limit) return names.join(', ');
+  return `${names.slice(0, limit).join(', ')} and ${names.length - limit} more`;
+}
+
+function addColumnFromDialog() {
+  const header = elements.columnName.value.trim() || columnFieldDefaults.name;
+  const result = editor.addCheckColumn(header, {
+    members: elements.columnMembers.value,
+    marked: elements.columnMarked.value.trim(),
+    unmarked: elements.columnUnmarked.value.trim(),
+    addMissingRows: elements.columnCreateRows.checked,
+  });
+
+  if (!result) {
+    notify(`Column "${header}" could not be added.`, 'warning');
+    return;
+  }
+
+  renderTable();
+  const notes = [];
+  if (result.created.length > 0) {
+    notes.push(`${result.created.length} ${result.created.length === 1 ? 'row' : 'rows'} created`);
+  } else if (result.unmatched.length > 0) {
+    notes.push(`${result.unmatched.length} ${result.unmatched.length === 1 ? 'name' : 'names'} not found: ${formatNameList(result.unmatched)}`);
+  }
+  notify(`Column "${header}" added${notes.length > 0 ? ` · ${notes.join(' · ')}` : ''}.`);
+}
+
 function undoHistory() {
   if (document.activeElement instanceof HTMLElement) commitInlineEdit(document.activeElement);
   if (editor.undo()) {
@@ -663,8 +761,16 @@ function bindEvents() {
     });
   });
   elements.reorderButton.addEventListener('click', toggleReorderMode);
-  elements.addColumnButton.addEventListener('click', () => {
-    runTableAction(() => editor.addColumn(), { message: 'Column added.' });
+  elements.addColumnButton.addEventListener('click', openColumnDialog);
+  elements.columnCancelButton.addEventListener('click', () => elements.columnDialog.close());
+  elements.columnDialog.addEventListener('close', () => {
+    if (elements.columnDialog.returnValue === 'confirm') addColumnFromDialog();
+  });
+  elements.columnDialog.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    elements.columnDialog.close('confirm');
   });
   elements.addRowButton.addEventListener('click', () => {
     runTableAction(() => editor.addRow(), {
@@ -700,6 +806,7 @@ function bindEvents() {
   document.addEventListener('dragend', onDragEnd);
 
   document.addEventListener('keydown', (event) => {
+    if (elements.columnDialog.open) return;
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const key = event.key.toLowerCase();
     const focusedSource = document.activeElement === elements.source;

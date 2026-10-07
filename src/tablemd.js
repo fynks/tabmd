@@ -10,6 +10,14 @@ export const OUTPUT_FORMAT = Object.freeze({
   HTML: 'html',
 });
 
+// Default values for the check column builder.
+const CHECK_MARK = '✅';
+const CROSS_MARK = '❌';
+
+// Nested JSON objects keep the label column used by the legacy md-table-to-json export.
+export const JSON_LABEL_HEADER = 'Service Name';
+export const JSON_PAIR_HEADERS = Object.freeze(['Key', 'Value']);
+
 const ALIGNMENT_MARKDOWN = Object.freeze({
   [ALIGNMENT.LEFT]: ':---',
   [ALIGNMENT.CENTER]: ':---:',
@@ -188,10 +196,14 @@ export function parseHTMLTable(input, DOMParserClass = globalThis.DOMParser) {
 
 export function parseTable(input, { DOMParser: DOMParserClass = globalThis.DOMParser } = {}) {
   const value = text(input).trim();
-  if (!value) throw new Error('Please enter a Markdown or HTML table');
+  if (!value) throw new Error('Please enter a Markdown, HTML, or JSON table');
 
   if (/<table(?:\s|>)/i.test(value) || /<table/i.test(value)) {
     return parseHTMLTable(value, DOMParserClass);
+  }
+
+  if (/^[\[{]/.test(value)) {
+    return parseJSONTable(value);
   }
 
   const lines = value.split(/\r?\n/).filter((line) => line.trim());
@@ -199,7 +211,75 @@ export function parseTable(input, { DOMParser: DOMParserClass = globalThis.DOMPa
     return parseMarkdownTable(value);
   }
 
-  throw new Error('Input does not appear to be a valid HTML or Markdown table');
+  throw new Error('Input does not appear to be a valid HTML, JSON, or Markdown table');
+}
+
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function jsonCellValue(value) {
+  if (value === null || value === undefined) return '';
+  if (isPlainObject(value) || Array.isArray(value)) return JSON.stringify(value);
+  return normalizeCheckValue(String(value));
+}
+
+function collectKeys(entries) {
+  const keys = [];
+  const seen = new Set();
+  for (const entry of entries) {
+    for (const key of Object.keys(entry)) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
+function tableFromRowObjects(entries) {
+  if (entries.length === 0) throw new Error('JSON array must contain at least one row object');
+  if (!entries.every(isPlainObject)) throw new Error('Every entry in a JSON row array must be an object');
+
+  const headers = collectKeys(entries);
+  if (headers.length === 0) throw new Error('JSON row objects have no keys to use as headers');
+
+  const rows = entries.map((entry) => headers.map((header) => jsonCellValue(entry[header])));
+  return normalizeTable({ headers, rows });
+}
+
+function tableFromRecord(record) {
+  const keys = Object.keys(record);
+  if (keys.length === 0) throw new Error('JSON object must contain at least one entry');
+
+  const values = keys.map((key) => record[key]);
+  // Nested objects are read as a check/property matrix; plain values become key/value rows.
+  if (values.every(isPlainObject)) {
+    const headers = [JSON_LABEL_HEADER, ...collectKeys(values)];
+    const rows = keys.map((key) => [
+      key,
+      ...headers.slice(1).map((header) => jsonCellValue(record[key][header])),
+    ]);
+    return normalizeTable({ headers, rows });
+  }
+
+  const rows = keys.map((key) => [key, jsonCellValue(record[key])]);
+  return normalizeTable({ headers: [...JSON_PAIR_HEADERS], rows });
+}
+
+export function parseJSONTable(input) {
+  const value = text(input).trim();
+  let data;
+  try {
+    data = JSON.parse(value);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid JSON: ${message}`, { cause: error });
+  }
+
+  if (Array.isArray(data)) return tableFromRowObjects(data);
+  if (isPlainObject(data)) return tableFromRecord(data);
+  throw new Error('JSON must be an object of rows or an array of row objects');
 }
 
 export function normalizeTable(table = {}) {
@@ -226,6 +306,56 @@ export function cloneTable(table) {
     alignments: [...table.alignments],
     rows: table.rows.map((row) => [...row]),
   };
+}
+
+function matchRowKey(value) {
+  return text(value).replace(/\*\*/g, '').trim().toLowerCase();
+}
+
+export function splitMemberList(input) {
+  return text(input)
+    .split(/[\n,;]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+export function buildCheckColumn(table, {
+  header = 'New Column',
+  members = '',
+  marked = CHECK_MARK,
+  unmarked = CROSS_MARK,
+  addMissingRows = false,
+} = {}) {
+  const current = normalizeTable(table);
+  const memberList = splitMemberList(Array.isArray(members) ? members.join('\n') : members);
+  const wanted = new Set(memberList.map(matchRowKey));
+  const rows = current.rows.map((row) => [...row]);
+  const created = [];
+  const unmatched = [];
+
+  // Listed names without a row are reported, and optionally appended as fully unmarked rows.
+  for (const member of memberList) {
+    const key = matchRowKey(member);
+    if (!key || rows.some((row) => matchRowKey(row[0]) === key) || unmatched.some((name) => matchRowKey(name) === key)) continue;
+    unmatched.push(member);
+    if (!addMissingRows) continue;
+    created.push(member);
+    rows.push([member, ...new Array(Math.max(0, current.headers.length - 1)).fill(unmarked)]);
+  }
+
+  // An empty member list still adds a plain empty column.
+  const next = {
+    headers: [...current.headers, text(header)],
+    alignments: [...current.alignments, ALIGNMENT.LEFT],
+    rows: rows.map((row) => [
+      ...row,
+      memberList.length === 0
+        ? ''
+        : normalizeCheckValue(wanted.has(matchRowKey(row[0])) ? marked : unmarked),
+    ]),
+  };
+
+  return { table: normalizeTable(next), created, unmatched };
 }
 
 function tablesEqual(left, right) {
@@ -288,15 +418,31 @@ export function formatTable(table, format = OUTPUT_FORMAT.MARKDOWN) {
   }
 }
 
+export function analyzeTableData(table) {
+  const current = normalizeTable(table);
+  const total = current.rows.length;
+  const columns = current.headers.slice(1).map((name, offset) => {
+    const column = offset + 1;
+    const checked = current.rows.reduce((sum, row) => sum + (isChecked(row[column]) ? 1 : 0), 0);
+    return {
+      name,
+      checked,
+      total,
+      percent: total > 0 ? Math.round((checked / total) * 100) : 0,
+    };
+  });
+
+  return { total, columns };
+}
+
 export function analyzeTable(table) {
   const current = normalizeTable(table);
   if (current.rows.length === 0 || current.headers.length === 0) return '';
 
-  const total = current.rows.length;
+  const { total, columns } = analyzeTableData(current);
   let result = `| **Total** = ${total} |`;
-  for (let column = 1; column < current.headers.length; column += 1) {
-    const checked = current.rows.reduce((sum, row) => sum + (isChecked(row[column]) ? 1 : 0), 0);
-    result += ` **${checked}/${total}** |`;
+  for (const column of columns) {
+    result += ` **${column.checked}/${total}** |`;
   }
   return result;
 }
@@ -447,6 +593,12 @@ export class TableMD {
     next.alignments.push(ALIGNMENT.LEFT);
     next.rows.forEach((row) => row.push(''));
     return this.#commit(next);
+  }
+
+  addCheckColumn(header, options = {}) {
+    const { table, created, unmatched } = buildCheckColumn(this.#state, { header, ...options });
+    if (!this.#commit(table)) return null;
+    return { created, unmatched };
   }
 
   removeColumn(columnIndex = this.#state.headers.length - 1) {
