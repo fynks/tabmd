@@ -78,6 +78,7 @@ body {
 }
 
 button,
+input,
 textarea,
 select {
   font: inherit;
@@ -89,6 +90,7 @@ button {
 
 button:focus-visible,
 a:focus-visible,
+input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
@@ -384,13 +386,6 @@ select:focus {
   outline: none;
 }
 
-.field-hint {
-  margin: 7px 0 0;
-  color: var(--text-subtle);
-  font-size: 10px;
-  line-height: 1.5;
-}
-
 .sidebar-actions,
 .output-controls {
   display: flex;
@@ -511,28 +506,6 @@ select:focus {
 .copy-button.is-success:hover {
   border-color: var(--success);
   background: color-mix(in srgb, var(--success) 10%, var(--surface));
-}
-
-.sidebar-footnote {
-  margin: 0;
-  padding: 2px 3px;
-  color: var(--text-subtle);
-  font-size: 10px;
-  line-height: 1.8;
-}
-
-kbd {
-  display: inline-block;
-  min-width: 17px;
-  padding: 0 4px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--text-muted);
-  font-family: var(--mono);
-  font-size: 9px;
-  line-height: 1.55;
-  text-align: center;
 }
 
 .workspace {
@@ -699,12 +672,6 @@ kbd {
   border-top: 1px solid var(--border);
 }
 
-.analysis-description {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
 .analysis-output {
   width: 100%;
   min-width: 0;
@@ -822,12 +789,6 @@ textarea::-webkit-scrollbar-thumb {
   margin: 0;
   color: var(--text-muted);
   font-size: 11px;
-}
-
-.empty-tip {
-  margin-top: 2px;
-  color: var(--text-subtle);
-  font-size: 10px;
 }
 
 .table-host {
@@ -965,14 +926,9 @@ textarea::-webkit-scrollbar-thumb {
   display: flex;
   min-width: 0;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   color: var(--text-subtle);
   font-size: 10px;
-}
-
-.workspace-footer > span:last-child {
-  text-align: right;
 }
 
 .notification {
@@ -1009,6 +965,119 @@ textarea::-webkit-scrollbar-thumb {
 .notification-info {
   border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
   background: var(--accent-soft);
+}
+
+.dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 18px 48px rgb(15 23 42 / 22%);
+}
+
+.dialog::backdrop {
+  background: rgb(15 23 42 / 45%);
+}
+
+:root[data-theme="dark"] .dialog {
+  box-shadow: 0 18px 48px rgb(0 0 0 / 52%);
+}
+
+:root[data-theme="dark"] .dialog::backdrop {
+  background: rgb(2 6 12 / 62%);
+}
+
+.dialog-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.dialog h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.dialog-field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.dialog-field label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dialog-field input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.dialog-field textarea {
+  min-height: 84px;
+  font-size: 12px;
+}
+
+.dialog-field input:hover {
+  border-color: var(--border-strong);
+}
+
+.dialog-field input:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 17%, transparent);
+  outline: none;
+}
+
+.dialog-values {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dialog-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dialog-check input {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.dialog-actions .button {
+  flex: 0 0 auto;
+  min-width: 96px;
 }
 
 @keyframes spin {
@@ -1051,10 +1120,6 @@ textarea::-webkit-scrollbar-thumb {
   .sidebar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
-  }
-
-  .sidebar-footnote {
-    grid-column: 1 / -1;
   }
 
   .workspace {
@@ -1109,10 +1174,6 @@ textarea::-webkit-scrollbar-thumb {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .sidebar-footnote {
-    grid-column: auto;
-  }
-
   .source-panel textarea {
     min-height: 155px;
   }
@@ -1149,16 +1210,6 @@ textarea::-webkit-scrollbar-thumb {
 
   .analysis-panel summary {
     flex-wrap: wrap;
-  }
-
-  .workspace-footer {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .workspace-footer > span:last-child {
-    text-align: left;
   }
 
   .notification {

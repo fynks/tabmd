@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f8fafc" />
     <meta
       name="description"
-      content="A focused workspace to import, edit, analyze, and export Markdown and HTML tables."
+      content="A focused workspace to import, edit, analyze, and export Markdown, HTML, and JSON tables."
     />
     <meta name="apple-mobile-web-app-title" content="TabMD" />
     <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
@@ -54,20 +54,18 @@
                 <p class="eyebrow">IMPORT</p>
                 <h2 id="sourceHeading">Source</h2>
               </div>
-              <span class="panel-tag">MD · HTML</span>
+              <span class="panel-tag">MD · HTML · JSON</span>
             </div>
 
-            <label for="input">Markdown or HTML table</label>
+            <label for="input">Markdown, HTML, or JSON table</label>
             <textarea
               id="input"
               name="source"
               rows="10"
               spellcheck="false"
               autocomplete="off"
-              placeholder="Paste a Markdown or HTML table…"
-              aria-describedby="sourceHint"
+              placeholder="Paste a Markdown, HTML, or JSON table…"
             ></textarea>
-            <p id="sourceHint" class="field-hint">Parsing is debounced while you type. Alignments and colspan cells are retained.</p>
 
             <div class="sidebar-actions">
               <button id="parseBtn" class="button button-primary" type="button">
@@ -112,10 +110,7 @@
               placeholder="Your formatted table will appear here."
               aria-live="polite"
             ></textarea>
-            <p class="field-hint">The output stays in sync with edits to the table.</p>
           </section>
-
-          <p class="sidebar-footnote"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Enter</kbd> to parse · <kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>Shift</kbd> <kbd>C</kbd> to copy</p>
         </aside>
 
         <section class="workspace" aria-labelledby="workspaceHeading">
@@ -196,18 +191,67 @@
             <div id="emptyState" class="empty-state">
               <span class="empty-icon" aria-hidden="true"><i data-lucide="table-2"></i></span>
               <h2>No table yet</h2>
-              <p>Paste a Markdown or HTML table in the sidebar, then choose <strong>Parse table</strong>.</p>
-              <span class="empty-tip">Your table will appear here, ready to edit.</span>
+              <p>Paste a Markdown, HTML, or JSON table in the sidebar, then choose <strong>Parse table</strong>.</p>
             </div>
             <div id="tableHost" class="table-host" hidden></div>
           </section>
 
           <footer class="workspace-footer">
             <span id="tableStatus">Ready for a table</span>
-            <span>Tip: <kbd>Enter</kbd> commits an edit. <kbd>Alt</kbd> + arrow keys reorder in Reorder mode.</span>
           </footer>
         </section>
       </main>
+
+      <dialog id="columnDialog" class="dialog" aria-labelledby="columnDialogTitle">
+        <form class="dialog-form" method="dialog">
+          <h2 id="columnDialogTitle">Add column</h2>
+
+          <div class="dialog-field">
+            <label for="columnName">Column name</label>
+            <input
+              id="columnName"
+              name="columnName"
+              type="text"
+              value="New Column"
+              spellcheck="false"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="dialog-field">
+            <label for="columnMembers">Rows to mark</label>
+            <textarea
+              id="columnMembers"
+              name="columnMembers"
+              rows="4"
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="Real-Debrid, AllDebrid"
+            ></textarea>
+          </div>
+
+          <div class="dialog-values">
+            <div class="dialog-field">
+              <label for="columnMarked">Marked value</label>
+              <input id="columnMarked" name="columnMarked" type="text" value="✅" />
+            </div>
+            <div class="dialog-field">
+              <label for="columnUnmarked">Unmarked value</label>
+              <input id="columnUnmarked" name="columnUnmarked" type="text" value="❌" />
+            </div>
+          </div>
+
+          <label class="dialog-check" for="columnCreateRows">
+            <input id="columnCreateRows" name="columnCreateRows" type="checkbox" />
+            <span>Add rows for names that do not exist</span>
+          </label>
+
+          <div class="dialog-actions">
+            <button id="columnCancelBtn" class="button button-quiet" type="button">Cancel</button>
+            <button class="button button-primary" type="submit" value="confirm">Add column</button>
+          </div>
+        </form>
+      </dialog>
 
       <div id="notification" class="notification" role="status" aria-live="polite" aria-atomic="true" hidden></div>
     </div>
