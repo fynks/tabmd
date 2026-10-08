@@ -308,7 +308,9 @@ export function cloneTable(table) {
   };
 }
 
-function matchRowKey(value) {
+// Row-name matching used by the check column builder: ignores case, surrounding
+// whitespace, and `**` emphasis markers. Exposed for the builder's match preview.
+export function matchRowKey(value) {
   return text(value).replace(/\*\*/g, '').trim().toLowerCase();
 }
 
