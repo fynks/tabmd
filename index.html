@@ -69,8 +69,8 @@
 
             <div class="sidebar-actions">
               <button id="parseBtn" class="button button-primary" type="button">
-                <i data-lucide="play" aria-hidden="true"></i>
-                <span>Parse table</span>
+                <i data-lucide="import" aria-hidden="true"></i>
+                <span>Import</span>
               </button>
               <button id="clearBtn" class="button button-quiet" type="button">
                 <i data-lucide="trash-2" aria-hidden="true"></i>
@@ -119,52 +119,82 @@
               <p class="eyebrow">EDITOR</p>
               <h1 id="workspaceHeading">Table workspace</h1>
             </div>
-            <p id="tableDimensions" class="workspace-meta" aria-live="polite">No table loaded</p>
           </div>
 
-          <div class="table-toolbar" role="toolbar" aria-label="Table editing actions">
-            <div class="toolbar-group">
-              <button id="analyzeBtn" class="button button-secondary" type="button">
-                <i data-lucide="activity" aria-hidden="true"></i>
-                <span>Analyze</span>
-              </button>
-              <button id="sortRowsBtn" class="button button-secondary" type="button" aria-label="Sort rows alphabetically by the first column">
-                <i data-lucide="arrow-down-a-z" aria-hidden="true"></i>
-                <span>Sort rows</span>
-              </button>
-              <button id="reorderBtn" class="button button-secondary" type="button" aria-pressed="false" aria-describedby="reorderHelp">
-                <i data-lucide="grip-vertical" aria-hidden="true"></i>
-                <span>Reorder</span>
-              </button>
+          <div class="editor-frame">
+            <div class="table-toolbar" role="toolbar" aria-label="Table editing actions">
+              <div class="toolbar-group toolbar-group-primary">
+                <button id="addColumnBtn" class="button button-primary" type="button">
+                  <span class="icon-stack" aria-hidden="true">
+                    <i data-lucide="columns-3"></i>
+                    <i class="mini-icon" data-lucide="plus"></i>
+                  </span>
+                  <span>Add column</span>
+                </button>
+                <button id="addRowBtn" class="button button-secondary" type="button">
+                  <span class="icon-stack" aria-hidden="true">
+                    <i data-lucide="rows-3"></i>
+                    <i class="mini-icon" data-lucide="plus"></i>
+                  </span>
+                  <span>Add row</span>
+                </button>
+              </div>
+              <span class="toolbar-divider" aria-hidden="true"></span>
+              <div class="toolbar-group">
+                <button id="sortRowsBtn" class="button button-quiet" type="button" aria-label="Sort rows alphabetically by the first column" title="Sort rows by the first column">
+                  <i data-lucide="arrow-down-a-z" aria-hidden="true"></i>
+                  <span>Sort rows</span>
+                </button>
+                <button id="reorderBtn" class="button button-quiet" type="button" aria-pressed="false" aria-describedby="reorderHelp">
+                  <i data-lucide="grip-vertical" aria-hidden="true"></i>
+                  <span>Reorder</span>
+                </button>
+                <button id="analyzeBtn" class="button button-quiet" type="button">
+                  <i data-lucide="activity" aria-hidden="true"></i>
+                  <span>Analyze</span>
+                </button>
+              </div>
+              <span class="toolbar-divider" aria-hidden="true"></span>
+              <div class="toolbar-group toolbar-group-destructive">
+                <button id="removeColumnBtn" class="button button-quiet" type="button" aria-label="Remove the last column" title="Remove the last column">
+                  <span class="icon-stack" aria-hidden="true">
+                    <i data-lucide="columns-3"></i>
+                    <i class="mini-icon" data-lucide="minus"></i>
+                  </span>
+                  <span>Remove column</span>
+                </button>
+                <button id="removeRowBtn" class="button button-quiet" type="button" aria-label="Remove the last row" title="Remove the last row">
+                  <span class="icon-stack" aria-hidden="true">
+                    <i data-lucide="rows-3"></i>
+                    <i class="mini-icon" data-lucide="minus"></i>
+                  </span>
+                  <span>Remove row</span>
+                </button>
+              </div>
             </div>
-            <span class="toolbar-divider" aria-hidden="true"></span>
-            <div class="toolbar-group">
-              <button id="addColumnBtn" class="button button-secondary" type="button">
-                <i data-lucide="columns-3" aria-hidden="true"></i>
-                <i class="mini-icon" data-lucide="plus" aria-hidden="true"></i>
-                <span>Add column</span>
-              </button>
-              <button id="addRowBtn" class="button button-secondary" type="button">
-                <i data-lucide="rows-3" aria-hidden="true"></i>
-                <i class="mini-icon" data-lucide="plus" aria-hidden="true"></i>
-                <span>Add row</span>
-              </button>
-            </div>
-            <span class="toolbar-divider" aria-hidden="true"></span>
-            <div class="toolbar-group toolbar-group-destructive">
-              <button id="removeColumnBtn" class="button button-secondary" type="button" aria-label="Remove the last column">
-                <i data-lucide="columns-3" aria-hidden="true"></i>
-                <i class="mini-icon" data-lucide="minus" aria-hidden="true"></i>
-                <span>Remove column</span>
-              </button>
-              <button id="removeRowBtn" class="button button-secondary" type="button" aria-label="Remove the last row">
-                <i data-lucide="rows-3" aria-hidden="true"></i>
-                <i class="mini-icon" data-lucide="minus" aria-hidden="true"></i>
-                <span>Remove row</span>
-              </button>
-            </div>
+            <p id="reorderHelp" class="visually-hidden">In reorder mode, drag rows or column headers. Keyboard: focus a row or header and press Alt plus an arrow key to move it.</p>
+
+            <section
+              id="tableViewport"
+              class="table-viewport"
+              role="region"
+              aria-label="Editable table canvas"
+              tabindex="0"
+              aria-describedby="reorderHelp"
+              aria-busy="false"
+            >
+              <div id="emptyState" class="empty-state">
+                <span class="empty-icon" aria-hidden="true"><i data-lucide="table-2"></i></span>
+                <h2>No table yet</h2>
+                <p>Import a Markdown, HTML, or JSON table to get started.</p>
+                <button id="emptyImportBtn" class="button button-secondary" type="button">
+                  <i data-lucide="import" aria-hidden="true"></i>
+                  <span>Import table</span>
+                </button>
+              </div>
+              <div id="tableHost" class="table-host" hidden></div>
+            </section>
           </div>
-          <p id="reorderHelp" class="visually-hidden">In reorder mode, drag rows or column headers. Keyboard: focus a row or header and press Alt plus an arrow key to move it.</p>
 
           <details id="analysisSection" class="analysis-panel">
             <summary>
@@ -179,32 +209,18 @@
             </div>
           </details>
 
-          <section
-            id="tableViewport"
-            class="table-viewport"
-            role="region"
-            aria-label="Editable table canvas"
-            tabindex="0"
-            aria-describedby="reorderHelp"
-            aria-busy="false"
-          >
-            <div id="emptyState" class="empty-state">
-              <span class="empty-icon" aria-hidden="true"><i data-lucide="table-2"></i></span>
-              <h2>No table yet</h2>
-              <p>Paste a Markdown, HTML, or JSON table in the sidebar, then choose <strong>Parse table</strong>.</p>
-            </div>
-            <div id="tableHost" class="table-host" hidden></div>
-          </section>
-
           <footer class="workspace-footer">
-            <span id="tableStatus">Ready for a table</span>
+            <span id="tableStatus" aria-live="polite">No table loaded</span>
           </footer>
         </section>
       </main>
 
       <dialog id="columnDialog" class="dialog" aria-labelledby="columnDialogTitle">
         <form class="dialog-form" method="dialog">
-          <h2 id="columnDialogTitle">Add column</h2>
+          <div class="dialog-heading">
+            <h2 id="columnDialogTitle">Add column</h2>
+            <p class="dialog-subtitle">List the rows to mark. Every other row gets the unmarked value.</p>
+          </div>
 
           <div class="dialog-field">
             <label for="columnName">Column name</label>
@@ -228,6 +244,7 @@
               autocomplete="off"
               placeholder="Real-Debrid, AllDebrid"
             ></textarea>
+            <p id="columnMatchHint" class="dialog-hint" aria-live="polite">Separate names with commas, semicolons, or new lines.</p>
           </div>
 
           <div class="dialog-values">
@@ -247,11 +264,44 @@
           </label>
 
           <div class="dialog-actions">
+            <span class="dialog-shortcut" aria-hidden="true">Ctrl/⌘ + Enter</span>
             <button id="columnCancelBtn" class="button button-quiet" type="button">Cancel</button>
             <button class="button button-primary" type="submit" value="confirm">Add column</button>
           </div>
         </form>
       </dialog>
+
+      <div id="contextMenu" class="context-menu" role="menu" aria-label="Table actions" hidden>
+        <button class="context-item" type="button" role="menuitem" data-action="rename" data-scope="column">
+          <i data-lucide="pencil" aria-hidden="true"></i>
+          <span>Rename</span>
+        </button>
+        <button class="context-item" type="button" role="menuitem" data-action="move-prev" data-scope="column">
+          <i data-lucide="chevron-left" aria-hidden="true"></i>
+          <span>Move left</span>
+        </button>
+        <button class="context-item" type="button" role="menuitem" data-action="move-next" data-scope="column">
+          <i data-lucide="chevron-right" aria-hidden="true"></i>
+          <span>Move right</span>
+        </button>
+        <button class="context-item" type="button" role="menuitem" data-action="move-prev" data-scope="row">
+          <i data-lucide="chevron-up" aria-hidden="true"></i>
+          <span>Move up</span>
+        </button>
+        <button class="context-item" type="button" role="menuitem" data-action="move-next" data-scope="row">
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+          <span>Move down</span>
+        </button>
+        <div class="context-separator" role="separator"></div>
+        <button class="context-item context-item-danger" type="button" role="menuitem" data-action="delete" data-scope="column">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+          <span>Delete column</span>
+        </button>
+        <button class="context-item context-item-danger" type="button" role="menuitem" data-action="delete" data-scope="row">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+          <span>Delete row</span>
+        </button>
+      </div>
 
       <div id="notification" class="notification" role="status" aria-live="polite" aria-atomic="true" hidden></div>
     </div>

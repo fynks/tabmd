@@ -1,14 +1,21 @@
 import './ui.css';
 import {
   createIcons,
+  createElement as createIconElement,
   Activity,
   ArrowDownAZ,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
   Columns3,
   Copy,
   GripVertical,
+  Import,
   Minus,
   Moon,
-  Play,
+  MoreVertical,
+  Pencil,
   Plus,
   Redo2,
   Rows3,
@@ -23,8 +30,10 @@ import {
   TableMD,
   analyzeTableData,
   formatTable,
+  matchRowKey,
   normalizeCheckValue,
   parseTable,
+  splitMemberList,
 } from './tablemd.js';
 
 const editor = new TableMD();
@@ -36,6 +45,7 @@ const ui = {
   notificationTimer: null,
   parseTimer: null,
   pendingInlineEdits: new Set(),
+  contextMenu: { trigger: null, scope: null, index: -1, focusTarget: null },
 };
 
 const elements = {
@@ -60,13 +70,15 @@ const elements = {
   analysisSummary: document.querySelector('#analysisSummary'),
   viewport: document.querySelector('#tableViewport'),
   emptyState: document.querySelector('#emptyState'),
+  emptyImportButton: document.querySelector('#emptyImportBtn'),
   tableHost: document.querySelector('#tableHost'),
-  dimensions: document.querySelector('#tableDimensions'),
   tableStatus: document.querySelector('#tableStatus'),
   notification: document.querySelector('#notification'),
+  contextMenu: document.querySelector('#contextMenu'),
   columnDialog: document.querySelector('#columnDialog'),
   columnName: document.querySelector('#columnName'),
   columnMembers: document.querySelector('#columnMembers'),
+  columnMatchHint: document.querySelector('#columnMatchHint'),
   columnMarked: document.querySelector('#columnMarked'),
   columnUnmarked: document.querySelector('#columnUnmarked'),
   columnCreateRows: document.querySelector('#columnCreateRows'),
@@ -76,12 +88,18 @@ const elements = {
 const iconSet = {
   Activity,
   ArrowDownAZ,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
   Columns3,
   Copy,
   GripVertical,
+  Import,
   Minus,
   Moon,
-  Play,
+  MoreVertical,
+  Pencil,
   Plus,
   Redo2,
   Rows3,
@@ -128,7 +146,15 @@ setTheme(readSavedTheme(), false);
 
 function notify(message, type = 'success', duration = 3000) {
   window.clearTimeout(ui.notificationTimer);
-  elements.notification.textContent = message;
+  elements.notification.replaceChildren();
+  if (type === 'success') {
+    const icon = document.createElement('span');
+    icon.className = 'notification-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '✓';
+    elements.notification.append(icon);
+  }
+  elements.notification.append(document.createTextNode(message));
   elements.notification.hidden = false;
   elements.notification.className = `notification notification-${type}`;
   elements.notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
@@ -198,16 +224,62 @@ function updateDerivedOutput() {
   }
 }
 
+const formatLabels = {
+  [OUTPUT_FORMAT.MARKDOWN]: 'Markdown',
+  [OUTPUT_FORMAT.JSON]: 'JSON',
+  [OUTPUT_FORMAT.HTML]: 'HTML',
+};
+
 function updateTableMeta() {
   const { headers, rows } = editor.state;
   if (!editor.isValid) {
-    elements.dimensions.textContent = 'No table loaded';
-    elements.tableStatus.textContent = 'Ready for a table';
+    elements.tableStatus.textContent = 'No table loaded';
     return;
   }
 
-  elements.dimensions.textContent = `${headers.length} ${headers.length === 1 ? 'column' : 'columns'} · ${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`;
-  elements.tableStatus.textContent = `${rows.length} data ${rows.length === 1 ? 'row' : 'rows'} · ${headers.length} ${headers.length === 1 ? 'column' : 'columns'}`;
+  const rowCount = rows.length;
+  const columnCount = headers.length;
+  elements.tableStatus.textContent = [
+    `${rowCount} ${rowCount === 1 ? 'row' : 'rows'} × ${columnCount} ${columnCount === 1 ? 'column' : 'columns'}`,
+    `${rowCount * columnCount} ${rowCount * columnCount === 1 ? 'cell' : 'cells'}`,
+    formatLabels[ui.outputFormat] || 'Markdown',
+  ].join(' · ');
+}
+
+function cellText(element) {
+  return element?.querySelector('.cell-text');
+}
+
+function setCellText(element, value) {
+  const text = cellText(element);
+  if (text) text.textContent = value;
+}
+
+function createMenuTrigger(scope) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'context-trigger';
+  button.dataset.menuTrigger = scope;
+  button.tabIndex = -1;
+  button.contentEditable = 'false';
+  button.draggable = false;
+  button.setAttribute('aria-haspopup', 'menu');
+  button.setAttribute('aria-label', scope === 'column' ? 'Column actions' : 'Row actions');
+  button.append(createIconElement(MoreVertical, {
+    width: 14,
+    height: 14,
+    'aria-hidden': 'true',
+    'stroke-width': 1.8,
+  }));
+  return button;
+}
+
+function createGutterCell(scope) {
+  const cell = document.createElement(scope ? 'td' : 'th');
+  cell.className = 'gutter-cell';
+  cell.setAttribute('aria-hidden', 'true');
+  if (scope) cell.append(createMenuTrigger(scope));
+  return cell;
 }
 
 function createEditableCell({ value, field, rowIndex, columnIndex, version, label, alignment }) {
@@ -215,21 +287,26 @@ function createEditableCell({ value, field, rowIndex, columnIndex, version, labe
   cell.dataset.renderVersion = String(version);
   cell.dataset.columnIndex = String(columnIndex);
   cell.dataset.editable = field;
-  cell.contentEditable = String(!editor.reorderMode);
-  cell.tabIndex = 0;
-  cell.spellcheck = false;
-  cell.textContent = value;
-  cell.setAttribute('aria-label', label);
+
+  const text = document.createElement('span');
+  text.className = 'cell-text';
+  text.contentEditable = String(!editor.reorderMode);
+  text.tabIndex = 0;
+  text.spellcheck = false;
+  text.textContent = value;
+  text.setAttribute('aria-label', label);
+  cell.append(text);
 
   if (field === 'header') {
     cell.scope = 'col';
+    cell.tabIndex = -1;
     cell.draggable = editor.reorderMode;
     if (editor.reorderMode) {
       cell.setAttribute('aria-label', `Column ${columnIndex + 1}: ${value}. Drag to reorder, or press Alt plus Left or Right.`);
     }
+    cell.append(createMenuTrigger('column'));
   } else {
     cell.dataset.rowIndex = String(rowIndex);
-    cell.dataset.columnIndex = String(columnIndex);
     cell.classList.add(`align-${alignment}`);
   }
   return cell;
@@ -250,6 +327,7 @@ function renderTable({ focus } = {}) {
   const { headers, alignments, rows } = editor.state;
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
+  headerRow.append(createGutterCell());
   headers.forEach((header, columnIndex) => {
     const cell = createEditableCell({
       value: header,
@@ -275,6 +353,7 @@ function renderTable({ focus } = {}) {
     if (editor.reorderMode) {
       tableRow.setAttribute('aria-label', `Row ${rowIndex + 1}. Drag to reorder, or press Alt plus Up or Down.`);
     }
+    tableRow.append(createGutterCell('row'));
 
     row.forEach((value, columnIndex) => {
       tableRow.append(createEditableCell({
@@ -306,6 +385,7 @@ function renderTable({ focus } = {}) {
   updateTableMeta();
   updateDerivedOutput();
   syncHistoryButtons();
+  syncCellContext();
 
   if (focus && hasTable) {
     const selector = focus.type === 'row'
@@ -327,34 +407,37 @@ function readIndex(element, key, count) {
 }
 
 function commitInlineEdit(element) {
-  if (!(element instanceof HTMLElement) || !element.dataset.editable) return false;
-  const version = Number(element.dataset.renderVersion);
+  const cell = element instanceof HTMLElement ? element.closest('[data-editable]') : null;
+  if (!(cell instanceof HTMLElement)) return false;
+  const version = Number(cell.dataset.renderVersion);
   if (version !== ui.renderVersion) {
-    ui.pendingInlineEdits.delete(element);
+    ui.pendingInlineEdits.delete(cell);
     return false;
   }
 
-  const columnIndex = readIndex(element, 'columnIndex', editor.state.headers.length);
+  const columnIndex = readIndex(cell, 'columnIndex', editor.state.headers.length);
+  const value = () => cellText(cell)?.textContent || '';
   let changed = false;
-  if (element.dataset.editable === 'header' && columnIndex >= 0) {
-    changed = editor.editHeader(columnIndex, element.textContent || '');
-    element.textContent = editor.state.headers[columnIndex];
-  } else if (element.dataset.editable === 'cell') {
-    const row = element.closest('tbody tr');
+  if (cell.dataset.editable === 'header' && columnIndex >= 0) {
+    changed = editor.editHeader(columnIndex, value());
+    setCellText(cell, editor.state.headers[columnIndex]);
+  } else if (cell.dataset.editable === 'cell') {
+    const row = cell.closest('tbody tr');
     const rowIndex = readIndex(row, 'rowIndex', editor.state.rows.length);
     if (rowIndex >= 0 && columnIndex >= 0) {
-      changed = editor.editCell(rowIndex, columnIndex, element.textContent || '');
-      element.textContent = editor.state.rows[rowIndex][columnIndex];
+      changed = editor.editCell(rowIndex, columnIndex, value());
+      setCellText(cell, editor.state.rows[rowIndex][columnIndex]);
     }
   }
 
-  ui.pendingInlineEdits.delete(element);
+  ui.pendingInlineEdits.delete(cell);
   if (changed) {
-    if (element.dataset.editable === 'header') {
+    if (cell.dataset.editable === 'header') {
       const header = editor.state.headers[columnIndex] || `column ${columnIndex + 1}`;
-      element.setAttribute('aria-label', `Edit header ${columnIndex + 1}: ${header}`);
+      cellText(cell)?.setAttribute('aria-label', `Edit header ${columnIndex + 1}: ${header}`);
       elements.tableHost.querySelectorAll('tbody tr').forEach((row, rowIndex) => {
-        row.children[columnIndex]?.setAttribute('aria-label', `Edit row ${rowIndex + 1}, ${header}`);
+        cellText(row.querySelector(`[data-column-index="${columnIndex}"]`))
+          ?.setAttribute('aria-label', `Edit row ${rowIndex + 1}, ${header}`);
       });
     }
     updateDerivedOutput();
@@ -365,17 +448,190 @@ function commitInlineEdit(element) {
 }
 
 function restoreInlineEdit(element) {
-  if (!(element instanceof HTMLElement) || !element.dataset.editable) return;
-  const columnIndex = readIndex(element, 'columnIndex', editor.state.headers.length);
+  const cell = element instanceof HTMLElement ? element.closest('[data-editable]') : null;
+  if (!(cell instanceof HTMLElement)) return;
+  const columnIndex = readIndex(cell, 'columnIndex', editor.state.headers.length);
   if (columnIndex < 0) return;
-  if (element.dataset.editable === 'header') {
-    element.textContent = editor.state.headers[columnIndex];
+  if (cell.dataset.editable === 'header') {
+    setCellText(cell, editor.state.headers[columnIndex]);
   } else {
-    const row = element.closest('tbody tr');
+    const row = cell.closest('tbody tr');
     const rowIndex = readIndex(row, 'rowIndex', editor.state.rows.length);
-    if (rowIndex >= 0) element.textContent = editor.state.rows[rowIndex][columnIndex];
+    if (rowIndex >= 0) setCellText(cell, editor.state.rows[rowIndex][columnIndex]);
   }
-  ui.pendingInlineEdits.delete(element);
+  ui.pendingInlineEdits.delete(cell);
+}
+
+function syncCellContext() {
+  elements.tableHost.querySelectorAll('.is-col-active, .is-row-active').forEach((node) => {
+    node.classList.remove('is-col-active', 'is-row-active');
+  });
+  const active = document.activeElement;
+  const cell = active instanceof HTMLElement && elements.tableHost.contains(active)
+    ? active.closest('[data-editable]')
+    : null;
+  if (!cell) return;
+
+  cell.closest('tr')?.classList.add('is-row-active');
+  const columnIndex = cell.dataset.columnIndex;
+  if (columnIndex === undefined) return;
+  elements.tableHost.querySelectorAll(`[data-column-index="${columnIndex}"]`).forEach((node) => {
+    node.classList.add('is-col-active');
+  });
+}
+
+function contextMenuItems() {
+  return Array.from(elements.contextMenu.querySelectorAll('.context-item'));
+}
+
+function closeContextMenu({ restoreFocus = false } = {}) {
+  if (elements.contextMenu.hidden) return;
+  elements.contextMenu.hidden = true;
+  const { trigger, focusTarget } = ui.contextMenu;
+  if (trigger instanceof HTMLElement) {
+    trigger.classList.remove('is-menu-anchor');
+    trigger.closest('tr, th')?.classList.remove('is-menu-anchor');
+  }
+  ui.contextMenu = { trigger: null, scope: null, index: -1, focusTarget: null };
+  if (restoreFocus && focusTarget instanceof HTMLElement) {
+    focusTarget.focus({ preventScroll: true });
+  }
+}
+
+function positionContextMenu(anchor) {
+  const menu = elements.contextMenu;
+  const anchorRect = (anchor instanceof HTMLElement ? anchor : elements.viewport).getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const margin = 8;
+  const left = Math.max(margin, Math.min(anchorRect.left, window.innerWidth - menuRect.width - margin));
+  let top = anchorRect.bottom + 4;
+  if (top + menuRect.height > window.innerHeight - margin) {
+    top = Math.max(margin, anchorRect.top - menuRect.height - 4);
+  }
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+}
+
+function openContextMenu(scope, index, anchor) {
+  const count = scope === 'row' ? editor.state.rows.length : editor.state.headers.length;
+  if (!(anchor instanceof HTMLElement)) return;
+  if (!Number.isInteger(index) || index < 0 || index >= count) return;
+
+  const activeElement = document.activeElement;
+  const focusTarget = activeElement instanceof HTMLElement && elements.tableHost.contains(activeElement)
+    ? activeElement
+    : (cellText(anchor) || anchor);
+
+  closeContextMenu();
+  ui.contextMenu = { trigger: anchor, scope, index, focusTarget };
+  anchor.classList.add('is-menu-anchor');
+  anchor.closest('tr, th')?.classList.add('is-menu-anchor');
+  elements.contextMenu.setAttribute('aria-label', scope === 'row' ? 'Row actions' : 'Column actions');
+
+  contextMenuItems().forEach((item) => {
+    item.hidden = item.dataset.scope !== scope;
+    item.disabled = false;
+  });
+  const prev = elements.contextMenu.querySelector(`[data-action="move-prev"][data-scope="${scope}"]`);
+  const next = elements.contextMenu.querySelector(`[data-action="move-next"][data-scope="${scope}"]`);
+  const remove = elements.contextMenu.querySelector(`[data-action="delete"][data-scope="${scope}"]`);
+  if (prev) prev.disabled = index <= 0;
+  if (next) next.disabled = index >= count - 1;
+  if (remove) remove.disabled = scope === 'column' && count <= 1;
+
+  elements.contextMenu.hidden = false;
+  positionContextMenu(anchor);
+  contextMenuItems().find((item) => !item.hidden && !item.disabled)?.focus({ preventScroll: true });
+}
+
+function openContextMenuForCell(cell, trigger = null) {
+  const resolved = cell instanceof HTMLElement ? cell.closest('thead th[data-column-index], tbody tr') : null;
+  if (!resolved || !elements.tableHost.contains(resolved)) return;
+
+  if (resolved.matches('thead th')) {
+    openContextMenu('column', readIndex(resolved, 'columnIndex', editor.state.headers.length), trigger || resolved);
+    return;
+  }
+  const cellInRow = trigger ? null : (cell.closest('[data-editable]') || resolved);
+  openContextMenu('row', readIndex(resolved, 'rowIndex', editor.state.rows.length), trigger || cellInRow);
+}
+
+function runContextAction(item) {
+  const { scope, index } = ui.contextMenu;
+  const action = item.dataset.action;
+  if (document.activeElement instanceof HTMLElement) commitInlineEdit(document.activeElement);
+
+  if (action === 'rename') {
+    closeContextMenu();
+    const text = cellText(elements.tableHost.querySelector(`thead th[data-column-index="${index}"]`));
+    if (text) {
+      text.focus({ preventScroll: true });
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+    return;
+  }
+
+  if (action === 'move-prev' || action === 'move-next') {
+    const direction = action === 'move-prev' ? -1 : 1;
+    const toIndex = index + direction;
+    closeContextMenu();
+    if (editor.reorderMode) {
+      notify('Finish reorder mode before editing the table.', 'warning');
+      return;
+    }
+    const moved = scope === 'row'
+      ? editor.moveRow(index, toIndex)
+      : editor.moveColumn(index, toIndex);
+    if (moved) {
+      renderTable({ focus: { type: scope, index: toIndex } });
+      const destinations = scope === 'row' ? ['up', 'down'] : ['left', 'right'];
+      notify(`${scope === 'row' ? 'Row' : 'Column'} moved ${destinations[direction > 0 ? 1 : 0]}.`);
+    } else {
+      notify('That move is not available.', 'warning');
+    }
+    return;
+  }
+
+  if (action === 'delete') {
+    closeContextMenu();
+    if (editor.reorderMode) {
+      notify('Finish reorder mode before editing the table.', 'warning');
+      return;
+    }
+    const removed = scope === 'row' ? editor.removeRow(index) : editor.removeColumn(index);
+    if (removed) {
+      renderTable();
+      notify(`${scope === 'row' ? 'Row' : 'Column'} removed.`);
+    } else {
+      notify(scope === 'row' ? 'There are no rows to remove.' : 'A table must keep at least one column.', 'warning');
+    }
+  }
+}
+
+function onContextMenuKeydown(event) {
+  const items = contextMenuItems().filter((item) => !item.hidden && !item.disabled);
+  const current = items.indexOf(document.activeElement);
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeContextMenu({ restoreFocus: true });
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    const step = event.key === 'ArrowDown' ? 1 : -1;
+    items[(current + step + items.length) % items.length]?.focus({ preventScroll: true });
+  } else if (event.key === 'Home') {
+    event.preventDefault();
+    items[0]?.focus({ preventScroll: true });
+  } else if (event.key === 'End') {
+    event.preventDefault();
+    items[items.length - 1]?.focus({ preventScroll: true });
+  } else if (event.key === 'Tab') {
+    closeContextMenu();
+  }
 }
 
 function scheduleAutomaticParse() {
@@ -412,7 +668,8 @@ async function parseSource() {
     editor.reorderMode = false;
     editor.load(parsed);
     renderTable();
-    notify('Table parsed successfully.');
+    const rowCount = editor.state.rows.length;
+    notify(rowCount > 0 ? `Imported ${rowCount} ${rowCount === 1 ? 'row' : 'rows'}.` : 'Table imported.');
   } catch (error) {
     elements.viewport.setAttribute('aria-busy', 'false');
     notify(error instanceof Error ? error.message : 'Unable to parse this table.', 'error', 5000);
@@ -509,6 +766,40 @@ const columnFieldDefaults = {
   createRows: elements.columnCreateRows.checked,
 };
 
+// Live preview of the builder's existing matching rules; the applied column is
+// still created by buildCheckColumn via editor.addCheckColumn.
+function updateColumnMatchHint() {
+  const names = splitMemberList(elements.columnMembers.value);
+  const rows = editor.state.rows;
+  const createRows = elements.columnCreateRows.checked;
+
+  if (names.length === 0) {
+    elements.columnMatchHint.textContent = 'Separate names with commas, semicolons, or new lines.';
+    elements.columnMatchHint.classList.remove('is-warning');
+    return;
+  }
+
+  const wanted = new Set(names.map(matchRowKey));
+  const matchedRows = rows.filter((row) => wanted.has(matchRowKey(row[0]))).length;
+  const unmatched = [];
+  for (const name of names) {
+    const key = matchRowKey(name);
+    if (!key || unmatched.some((entry) => matchRowKey(entry) === key)) continue;
+    if (!rows.some((row) => matchRowKey(row[0]) === key)) unmatched.push(name);
+  }
+
+  const parts = [`${matchedRows} of ${rows.length} ${rows.length === 1 ? 'row' : 'rows'} matched`];
+  if (unmatched.length > 0) {
+    if (createRows) {
+      parts.push(`${unmatched.length} ${unmatched.length === 1 ? 'row' : 'rows'} will be created`);
+    } else {
+      parts.push(`${unmatched.length} ${unmatched.length === 1 ? 'name' : 'names'} not found: ${formatNameList(unmatched)}`);
+    }
+  }
+  elements.columnMatchHint.textContent = parts.join(' · ');
+  elements.columnMatchHint.classList.toggle('is-warning', unmatched.length > 0 && !createRows);
+}
+
 function openColumnDialog() {
   if (editor.reorderMode) {
     notify('Finish reorder mode before editing the table.', 'warning');
@@ -520,6 +811,7 @@ function openColumnDialog() {
   elements.columnMarked.value = columnFieldDefaults.marked;
   elements.columnUnmarked.value = columnFieldDefaults.unmarked;
   elements.columnCreateRows.checked = columnFieldDefaults.createRows;
+  updateColumnMatchHint();
   elements.columnDialog.returnValue = '';
   elements.columnDialog.showModal();
   elements.columnName.select();
@@ -692,17 +984,23 @@ function onTableKeydown(event) {
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (!target) return;
 
-  if (target.dataset.editable && event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+  const editable = target.closest('[data-editable]');
+  if (editable && event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault();
-    commitInlineEdit(target);
-    target.blur();
+    commitInlineEdit(editable);
+    cellText(editable)?.blur();
     return;
   }
-  if (target.dataset.editable && event.key === 'Escape') {
+  if (editable && event.key === 'Escape') {
     event.preventDefault();
-    restoreInlineEdit(target);
-    target.blur();
+    restoreInlineEdit(editable);
+    cellText(editable)?.blur();
     notify('Edit canceled.', 'info');
+    return;
+  }
+  if (editable && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10'))) {
+    event.preventDefault();
+    openContextMenuForCell(editable, cellText(editable));
     return;
   }
 
@@ -746,10 +1044,12 @@ function bindEvents() {
       ? event.target.value
       : OUTPUT_FORMAT.MARKDOWN;
     updateDerivedOutput();
+    updateTableMeta();
   });
   elements.analyzeButton.addEventListener('click', () => {
     elements.analysisSection.open = true;
     updateDerivedOutput();
+    elements.analysisSection.scrollIntoView({ block: 'nearest' });
     if (!editor.isValid || editor.state.rows.length === 0) notify('Add or import data to analyze.', 'warning');
     else notify('Analysis updated.', 'success');
   });
@@ -762,6 +1062,12 @@ function bindEvents() {
   });
   elements.reorderButton.addEventListener('click', toggleReorderMode);
   elements.addColumnButton.addEventListener('click', openColumnDialog);
+  elements.emptyImportButton.addEventListener('click', () => {
+    elements.source.focus();
+    elements.source.scrollIntoView({ block: 'nearest' });
+  });
+  elements.columnMembers.addEventListener('input', updateColumnMatchHint);
+  elements.columnCreateRows.addEventListener('change', updateColumnMatchHint);
   elements.columnCancelButton.addEventListener('click', () => elements.columnDialog.close());
   elements.columnDialog.addEventListener('close', () => {
     if (elements.columnDialog.returnValue === 'confirm') addColumnFromDialog();
@@ -798,6 +1104,31 @@ function bindEvents() {
   elements.viewport.addEventListener('focusout', (event) => {
     const element = event.target instanceof HTMLElement ? event.target.closest('[data-editable]') : null;
     if (element) commitInlineEdit(element);
+    queueMicrotask(syncCellContext);
+  });
+  elements.viewport.addEventListener('focusin', syncCellContext);
+  elements.viewport.addEventListener('mousedown', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    // Keep the caret and focus state stable when reaching for a contextual trigger.
+    if (target?.closest('[data-menu-trigger]')) event.preventDefault();
+  });
+  elements.viewport.addEventListener('click', (event) => {
+    const trigger = event.target instanceof Element ? event.target.closest('[data-menu-trigger]') : null;
+    if (!trigger) return;
+    event.preventDefault();
+    if (!elements.contextMenu.hidden && ui.contextMenu.trigger === trigger) {
+      closeContextMenu();
+      return;
+    }
+    openContextMenuForCell(trigger, trigger);
+  });
+  elements.viewport.addEventListener('contextmenu', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const anchor = target?.closest('[data-menu-trigger], .gutter-cell');
+    if (!anchor || !elements.tableHost.contains(anchor)) return;
+    event.preventDefault();
+    if (!elements.contextMenu.hidden && ui.contextMenu.trigger === anchor) return;
+    openContextMenuForCell(anchor, anchor.closest('[data-menu-trigger]'));
   });
   elements.viewport.addEventListener('keydown', onTableKeydown);
   elements.viewport.addEventListener('dragstart', onDragStart);
@@ -805,8 +1136,27 @@ function bindEvents() {
   elements.viewport.addEventListener('drop', onDrop);
   document.addEventListener('dragend', onDragEnd);
 
+  elements.contextMenu.addEventListener('click', (event) => {
+    const item = event.target instanceof Element ? event.target.closest('.context-item') : null;
+    if (item && !item.disabled) runContextAction(item);
+  });
+  elements.contextMenu.addEventListener('keydown', onContextMenuKeydown);
+  document.addEventListener('pointerdown', (event) => {
+    if (elements.contextMenu.hidden) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('#contextMenu, [data-menu-trigger], .gutter-cell')) return;
+    closeContextMenu();
+  });
+  window.addEventListener('resize', () => closeContextMenu());
+  document.addEventListener('scroll', () => closeContextMenu(), true);
+
   document.addEventListener('keydown', (event) => {
     if (elements.columnDialog.open) return;
+    if (!elements.contextMenu.hidden && event.key === 'Escape') {
+      event.preventDefault();
+      closeContextMenu({ restoreFocus: true });
+      return;
+    }
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const key = event.key.toLowerCase();
     const focusedSource = document.activeElement === elements.source;
