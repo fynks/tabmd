@@ -1,29 +1,5 @@
 import './ui.css';
-import {
-  createIcons,
-  createElement as createIconElement,
-  Activity,
-  ArrowDownAZ,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Columns3,
-  Copy,
-  GripVertical,
-  Import,
-  Minus,
-  Moon,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Redo2,
-  Rows3,
-  Sun,
-  Table2,
-  Trash2,
-  Undo2,
-} from 'lucide';
+import { createIcon, icons, renderIcons } from './ui/icons.js';
 import {
   ALIGNMENT,
   OUTPUT_FORMAT,
@@ -86,31 +62,7 @@ const elements = {
   columnCancelButton: document.querySelector('#columnCancelBtn'),
 };
 
-const iconSet = {
-  Activity,
-  ArrowDownAZ,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Columns3,
-  Copy,
-  GripVertical,
-  Import,
-  Minus,
-  Moon,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Redo2,
-  Rows3,
-  Sun,
-  Table2,
-  Trash2,
-  Undo2,
-};
-
-createIcons({ icons: iconSet, attrs: { 'stroke-width': 1.8 } });
+renderIcons();
 
 function readSavedTheme() {
   try {
@@ -236,7 +188,7 @@ function createMenuTrigger(scope) {
   button.draggable = false;
   button.setAttribute('aria-haspopup', 'menu');
   button.setAttribute('aria-label', scope === 'column' ? 'Column actions' : 'Row actions');
-  button.append(createIconElement(MoreVertical, {
+  button.append(createIcon(icons['more-vertical'], {
     width: 14,
     height: 14,
     'aria-hidden': 'true',

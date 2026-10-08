@@ -16,5 +16,6 @@ export default defineConfig({
     minify: 'oxc',
     sourcemap: false,
     target: 'es2022',
+    modulePreload: { polyfill: false },
   },
 });
