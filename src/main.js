@@ -28,7 +28,7 @@ import {
   ALIGNMENT,
   OUTPUT_FORMAT,
   TableMD,
-  analyzeTableData,
+  analyzeTable,
   formatTable,
   matchRowKey,
   normalizeCheckValue,
@@ -68,6 +68,7 @@ const elements = {
   analysisSection: document.querySelector('#analysisSection'),
   analysisOutput: document.querySelector('#analysisOutput'),
   analysisSummary: document.querySelector('#analysisSummary'),
+  copyAnalysisButton: document.querySelector('#copyAnalysisBtn'),
   viewport: document.querySelector('#tableViewport'),
   emptyState: document.querySelector('#emptyState'),
   emptyImportButton: document.querySelector('#emptyImportBtn'),
@@ -170,43 +171,13 @@ function syncHistoryButtons() {
 }
 
 function renderAnalysis() {
-  elements.analysisOutput.replaceChildren();
-  const { total, columns } = analyzeTableData(editor.state);
-  if (total === 0 || columns.length === 0) return;
-
-  const table = document.createElement('table');
-  table.className = 'analysis-table';
-  const caption = document.createElement('caption');
-  caption.className = 'visually-hidden';
-  caption.textContent = 'Checked rows per column';
-  table.append(caption);
-
-  const head = document.createElement('thead');
-  const headRow = document.createElement('tr');
-  for (const label of ['Column', 'Checked', 'Percent']) {
-    const cell = document.createElement('th');
-    cell.scope = 'col';
-    cell.textContent = label;
-    headRow.append(cell);
-  }
-  head.append(headRow);
-  table.append(head);
-
-  const body = document.createElement('tbody');
-  for (const column of columns) {
-    const row = document.createElement('tr');
-    const name = document.createElement('th');
-    name.scope = 'row';
-    name.textContent = column.name;
-    const checked = document.createElement('td');
-    checked.textContent = `${column.checked}/${column.total}`;
-    const percent = document.createElement('td');
-    percent.textContent = `${column.percent}%`;
-    row.append(name, checked, percent);
-    body.append(row);
-  }
-  table.append(body);
-  elements.analysisOutput.append(table);
+  // One copyable Markdown row to paste at the end of the table:
+  // | **Total** = N | **checked/N** | ... |   (one ✅ counts as 1)
+  const row = analyzeTable(editor.state);
+  elements.analysisOutput.textContent = row;
+  const bar = elements.analysisOutput.closest('.analysis-row-bar');
+  if (bar) bar.hidden = !row;
+  elements.copyAnalysisButton.disabled = !row;
 }
 
 function updateDerivedOutput() {
@@ -704,6 +675,21 @@ function copyUsingFallback(value) {
   return copied;
 }
 
+async function copyText(value) {
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    return copyUsingFallback(value);
+  }
+}
+
+function flashCopyButton(button, copied) {
+  button.classList.toggle('is-success', copied);
+  window.setTimeout(() => button.classList.remove('is-success'), 1400);
+}
+
 async function copyOutput() {
   const value = elements.output.value;
   if (!value) {
@@ -711,18 +697,21 @@ async function copyOutput() {
     return;
   }
 
-  let copied = false;
-  try {
-    if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
-    await navigator.clipboard.writeText(value);
-    copied = true;
-  } catch {
-    copied = copyUsingFallback(value);
+  const copied = await copyText(value);
+  flashCopyButton(elements.copyButton, copied);
+  notify(copied ? 'Output copied to clipboard.' : 'Could not copy output. Select the output and copy it manually.', copied ? 'success' : 'error', 4500);
+}
+
+async function copyAnalysisRow() {
+  const value = elements.analysisOutput.textContent || '';
+  if (!value) {
+    notify('Add or import data to analyze.', 'warning');
+    return;
   }
 
-  elements.copyButton.classList.toggle('is-success', copied);
-  window.setTimeout(() => elements.copyButton.classList.remove('is-success'), 1400);
-  notify(copied ? 'Output copied to clipboard.' : 'Could not copy output. Select the output and copy it manually.', copied ? 'success' : 'error', 4500);
+  const copied = await copyText(value);
+  flashCopyButton(elements.copyAnalysisButton, copied);
+  notify(copied ? 'Analysis row copied to clipboard.' : 'Could not copy the analysis row.', copied ? 'success' : 'error', 4500);
 }
 
 function clearAll() {
@@ -1038,6 +1027,7 @@ function bindEvents() {
   elements.parseButton.addEventListener('click', parseSource);
   elements.clearButton.addEventListener('click', clearAll);
   elements.copyButton.addEventListener('click', copyOutput);
+  elements.copyAnalysisButton.addEventListener('click', copyAnalysisRow);
   elements.source.addEventListener('input', scheduleAutomaticParse);
   elements.outputFormat.addEventListener('change', (event) => {
     ui.outputFormat = Object.values(OUTPUT_FORMAT).includes(event.target.value)

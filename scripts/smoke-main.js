@@ -51,6 +51,11 @@ assert(document.querySelectorAll('.data-table .gutter-cell').length === 3, 'gutt
 assert(document.querySelectorAll('.data-table .cell-text[contenteditable="true"]').length === 6, 'editable spans for 2 headers + 4 cells');
 assert(/2 rows × 2 columns · 4 cells · Markdown/.test($('#tableStatus').textContent), `status line: ${$('#tableStatus').textContent}`);
 
+// --- Analysis shows one copyable Markdown total row (one ✅ = 1).
+assert($('#analysisOutput').textContent === '| **Total** = 2 | **1/2** |', `analysis row: ${$('#analysisOutput').textContent}`);
+assert(!$('#analysisOutput').closest('.analysis-row-bar').hidden, 'analysis row bar visible');
+assert(!$('#copyAnalysisBtn').disabled, 'analysis copy button enabled');
+
 // --- Inline edit commits.
 const firstCell = document.querySelector('.data-table tbody td[data-column-index="0"] .cell-text');
 firstCell.textContent = 'Grace';
@@ -123,6 +128,8 @@ window.confirm = () => true;
 $('#clearBtn').click();
 assert(!$('#emptyState').hidden, 'empty state returns after clear');
 assert($('#tableStatus').textContent === 'No table loaded', 'status resets');
+assert($('#analysisOutput').textContent === '', 'analysis row cleared');
+assert($('#analysisOutput').closest('.analysis-row-bar').hidden, 'analysis row bar hidden when empty');
 
 assert(errors.length === 0, `no runtime errors (${errors.join('; ') || 'none'})`);
 console.log(process.exitCode ? 'SMOKE FAILED' : 'SMOKE PASSED');

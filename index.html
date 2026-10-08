@@ -205,7 +205,13 @@
               <span id="analysisSummary" class="analysis-summary">Not analyzed</span>
             </summary>
             <div class="analysis-body">
-              <div id="analysisOutput" class="analysis-output" aria-label="Analysis results"></div>
+              <div class="analysis-row-bar">
+                <code id="analysisOutput" class="analysis-output" aria-label="Analysis total row"></code>
+                <button id="copyAnalysisBtn" class="button button-quiet copy-button" type="button" aria-label="Copy analysis row to clipboard">
+                  <i data-lucide="copy" aria-hidden="true"></i>
+                  <span>Copy</span>
+                </button>
+              </div>
             </div>
           </details>
 

@@ -1094,46 +1094,33 @@ th:focus-within > .context-trigger,
   border-top: 1px solid var(--border);
 }
 
-.analysis-output {
-  width: 100%;
+.analysis-row-bar {
+  display: flex;
   min-width: 0;
-  margin: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.analysis-output {
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
   overflow-x: auto;
-}
-
-.analysis-table {
-  width: 100%;
-  border-collapse: collapse;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
   color: var(--text);
+  font-family: var(--mono);
   font-size: 11px;
-  text-align: left;
+  line-height: 1.6;
+  white-space: pre;
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
 }
 
-.analysis-table th,
-.analysis-table td {
-  min-width: 88px;
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.analysis-table thead th {
-  color: var(--text-subtle);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.analysis-table tbody th {
-  max-width: 280px;
-  color: var(--text-muted);
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.analysis-table tbody tr:last-child th,
-.analysis-table tbody tr:last-child td {
-  border-bottom: 0;
+.analysis-row-bar .copy-button {
+  flex: 0 0 auto;
 }
 
 /* ----- Empty state ----- */
@@ -1447,10 +1434,6 @@ th:focus-within > .context-trigger,
   .empty-state {
     min-height: 318px;
     padding-inline: 18px;
-  }
-
-  .analysis-table {
-    min-width: 520px;
   }
 }
 
