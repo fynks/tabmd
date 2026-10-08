@@ -154,23 +154,6 @@
                   <span>Analyze</span>
                 </button>
               </div>
-              <span class="toolbar-divider" aria-hidden="true"></span>
-              <div class="toolbar-group toolbar-group-destructive">
-                <button id="removeColumnBtn" class="button button-quiet" type="button" aria-label="Remove the last column" title="Remove the last column">
-                  <span class="icon-stack" aria-hidden="true">
-                    <i data-lucide="columns-3"></i>
-                    <i class="mini-icon" data-lucide="minus"></i>
-                  </span>
-                  <span>Remove column</span>
-                </button>
-                <button id="removeRowBtn" class="button button-quiet" type="button" aria-label="Remove the last row" title="Remove the last row">
-                  <span class="icon-stack" aria-hidden="true">
-                    <i data-lucide="rows-3"></i>
-                    <i class="mini-icon" data-lucide="minus"></i>
-                  </span>
-                  <span>Remove row</span>
-                </button>
-              </div>
             </div>
             <p id="reorderHelp" class="visually-hidden">In reorder mode, drag rows or column headers. Keyboard: focus a row or header and press Alt plus an arrow key to move it.</p>
 
@@ -278,10 +261,6 @@
       </dialog>
 
       <div id="contextMenu" class="context-menu" role="menu" aria-label="Table actions" hidden>
-        <button class="context-item" type="button" role="menuitem" data-action="rename" data-scope="column">
-          <i data-lucide="pencil" aria-hidden="true"></i>
-          <span>Rename</span>
-        </button>
         <button class="context-item" type="button" role="menuitem" data-action="move-prev" data-scope="column">
           <i data-lucide="chevron-left" aria-hidden="true"></i>
           <span>Move left</span>

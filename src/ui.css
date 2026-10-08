@@ -563,17 +563,6 @@ select:focus {
   stroke-width: 2.8;
 }
 
-.toolbar-group-destructive .button:hover:not(:disabled) {
-  --icon-badge-bg: var(--danger-soft);
-  border-color: transparent;
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-
-.toolbar-group-destructive .button:active:not(:disabled) {
-  background: color-mix(in srgb, var(--danger-soft) 70%, var(--danger) 8%);
-}
-
 .output-panel textarea {
   min-height: 196px;
   margin-top: 9px;

@@ -13,9 +13,7 @@ import Copy from 'lucide/dist/esm/icons/copy.mjs';
 import EllipsisVertical from 'lucide/dist/esm/icons/ellipsis-vertical.mjs';
 import GripVertical from 'lucide/dist/esm/icons/grip-vertical.mjs';
 import Import from 'lucide/dist/esm/icons/import.mjs';
-import Minus from 'lucide/dist/esm/icons/minus.mjs';
 import Moon from 'lucide/dist/esm/icons/moon.mjs';
-import Pencil from 'lucide/dist/esm/icons/pencil.mjs';
 import Plus from 'lucide/dist/esm/icons/plus.mjs';
 import Redo2 from 'lucide/dist/esm/icons/redo-2.mjs';
 import Rows3 from 'lucide/dist/esm/icons/rows-3.mjs';
@@ -37,10 +35,8 @@ export const icons = Object.freeze({
   'ellipsis-vertical': EllipsisVertical,
   'grip-vertical': GripVertical,
   import: Import,
-  minus: Minus,
   moon: Moon,
   'more-vertical': EllipsisVertical,
-  pencil: Pencil,
   plus: Plus,
   'redo-2': Redo2,
   'rows-3': Rows3,

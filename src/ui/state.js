@@ -29,8 +29,6 @@ export const elements = {
   reorderButton: document.querySelector('#reorderBtn'),
   addColumnButton: document.querySelector('#addColumnBtn'),
   addRowButton: document.querySelector('#addRowBtn'),
-  removeColumnButton: document.querySelector('#removeColumnBtn'),
-  removeRowButton: document.querySelector('#removeRowBtn'),
   analysisSection: document.querySelector('#analysisSection'),
   analysisOutput: document.querySelector('#analysisOutput'),
   analysisSummary: document.querySelector('#analysisSummary'),

@@ -83,7 +83,7 @@ headerTrigger.dispatchEvent(new window.MouseEvent('click', { bubbles: true, canc
 assert(!$('#contextMenu').hidden, 'context menu opens from header trigger');
 assert($('#contextMenu').getAttribute('aria-label') === 'Column actions', 'menu labelled for column');
 const visibleItems = [...document.querySelectorAll('#contextMenu .context-item')].filter((item) => !item.hidden);
-assert(visibleItems.length === 4, `column menu shows 4 items (got ${visibleItems.length})`);
+assert(visibleItems.length === 3, `column menu shows 3 items (got ${visibleItems.length})`);
 assert([...document.querySelectorAll('#contextMenu .context-item[data-scope="row"]')].every((item) => item.hidden), 'row items hidden in column menu');
 $('#contextMenu').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 assert($('#contextMenu').hidden, 'Escape closes context menu');

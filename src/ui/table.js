@@ -271,20 +271,6 @@ export function runContextAction(item) {
   const action = item.dataset.action;
   if (document.activeElement instanceof HTMLElement) commitInlineEdit(document.activeElement);
 
-  if (action === 'rename') {
-    closeContextMenu();
-    const text = cellText(elements.tableHost.querySelector(`thead th[data-column-index="${index}"]`));
-    if (text) {
-      text.focus({ preventScroll: true });
-      const range = document.createRange();
-      range.selectNodeContents(text);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    }
-    return;
-  }
-
   if (action === 'move-prev' || action === 'move-next') {
     const direction = action === 'move-prev' ? -1 : 1;
     const toIndex = index + direction;

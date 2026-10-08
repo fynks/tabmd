@@ -176,18 +176,6 @@ function bindEvents() {
       failure: 'Add a header before adding a row.',
     });
   });
-  elements.removeColumnButton.addEventListener('click', () => {
-    runTableAction(() => editor.removeColumn(), {
-      message: 'Last column removed.',
-      failure: 'A table must keep at least one column.',
-    });
-  });
-  elements.removeRowButton.addEventListener('click', () => {
-    runTableAction(() => editor.removeRow(), {
-      message: 'Last row removed.',
-      failure: 'There are no rows to remove.',
-    });
-  });
 
   document.addEventListener('keydown', (event) => {
     if (elements.columnDialog.open) return;
