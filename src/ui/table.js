@@ -26,7 +26,7 @@ function createMenuTrigger(scope) {
   button.draggable = false;
   button.setAttribute('aria-haspopup', 'menu');
   button.setAttribute('aria-label', scope === 'column' ? 'Column actions' : 'Row actions');
-  button.append(createIcon(icons['more-vertical'], {
+  button.append(createIcon(icons['ellipsis-vertical'], {
     width: 14,
     height: 14,
     'aria-hidden': 'true',

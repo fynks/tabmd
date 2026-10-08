@@ -449,24 +449,6 @@ export function analyzeTable(table) {
   return result;
 }
 
-export function getColumnStats(table, columnIndex) {
-  const current = normalizeTable(table);
-  if (!Number.isInteger(columnIndex) || columnIndex < 0 || columnIndex >= current.headers.length) return null;
-
-  const values = current.rows.map((row) => row[columnIndex] || '');
-  const counts = new Map();
-  for (const value of values) counts.set(value, (counts.get(value) || 0) + 1);
-  const mostCommon = [...counts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] || '';
-
-  return {
-    columnName: current.headers[columnIndex],
-    totalCells: values.length,
-    uniqueValues: new Set(values).size,
-    emptyCells: values.filter((value) => !value.trim()).length,
-    mostCommon,
-  };
-}
-
 export class TableHistory {
   #entries;
   #index;

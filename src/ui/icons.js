@@ -22,7 +22,7 @@ import Table2 from 'lucide/dist/esm/icons/table-2.mjs';
 import Trash from 'lucide/dist/esm/icons/trash.mjs';
 import Undo2 from 'lucide/dist/esm/icons/undo-2.mjs';
 
-// data-lucide name → icon node.
+// data-lucide name → icon node (canonical Lucide names only).
 export const icons = Object.freeze({
   activity: Activity,
   'arrow-down-a-z': ArrowDownAZ,
@@ -36,14 +36,12 @@ export const icons = Object.freeze({
   'grip-vertical': GripVertical,
   import: Import,
   moon: Moon,
-  'more-vertical': EllipsisVertical,
   plus: Plus,
   'redo-2': Redo2,
   'rows-3': Rows3,
   sun: Sun,
   'table-2': Table2,
   trash: Trash,
-  'trash-2': Trash,
   'undo-2': Undo2,
 });
 
